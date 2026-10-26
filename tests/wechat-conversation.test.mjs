@@ -4,6 +4,9 @@ import {renderWeChatChat} from '../src/apps/wechat/components/chat-view.js';
 import {groupAvatar,groupMembersForAvatar} from '../src/apps/wechat/components/group-avatar.js';
 import {recallWeChatMessage} from '../src/apps/wechat/features/recall/index.js';
 import {speakWeChatText,stopWeChatSpeech} from '../src/apps/wechat/features/tts/index.js';
+import {emojiCategories,renderEmojiPanel,insertEmoji,eraseEmoji} from '../src/apps/wechat/features/emoji/index.js';
+import {appFrame} from '../src/system/shell.js';
+import {manifest as wechatManifest} from '../src/apps/wechat/index.js';
 import {initialState,PhoneStore} from '../src/services/storage.js';
 import {readFileSync} from 'node:fs';
 
@@ -62,4 +65,34 @@ test('text-to-speech reads text in the device voice, supports Chinese and stops 
  assert.equal(speakWeChatText('Hello',{engine,Utterance:FakeUtterance}).lang,'en-US');
  assert.throws(()=>speakWeChatText(''),/没有可朗读/);
  assert.throws(()=>speakWeChatText('Hi',{engine:{speak:null},Utterance:FakeUtterance}),/暂不支持/);
+});
+
+test('native WeChat chat bar has a centered contact name, back chevron, and triple-dot menu',()=>{
+ const s=initialState();s.nav.current={appId:'wechat',route:'/chat/wang',params:{}};
+ const markup=appFrame(s,{manifest:wechatManifest},renderWeChatChat(s,'wang'));
+ assert.match(markup,/class="app-nav wx-native-nav"/);
+ assert.match(markup,/aria-label="返回微信"/);
+ assert.match(markup,/class="nav-home wx-native-more"/);
+ assert.match(markup,/<strong>熙旺<\/strong>/);
+ assert.match(markup,/circle cx="5" cy="12"/);
+ assert.doesNotMatch(markup,/nav-home[^>]*>⌂/);
+ const css=readFileSync(new URL('../src/apps/wechat/styles.css',import.meta.url),'utf8');
+ assert.match(css,/\.app-view\.app-wechat\.has-chat\{padding-top:60px/);
+ assert.match(css,/\.wx-emoji-tabs\{[^}]*padding:3px 8px 27px/);
+});
+
+test('system emoji tray offers native emoji categories and inserts at caret without sending',()=>{
+ const panel=renderEmojiPanel();
+ assert.match(panel,/data-action="wx-emoji-insert"/);
+ assert.match(panel,/data-action="wx-emoji-delete"/);
+ assert.match(panel,/data-action="wx-emoji-category"/);
+ assert.equal(emojiCategories.length,4);
+ assert.ok(emojiCategories.flatMap(c=>c.items).length>=140);
+ assert.deepEqual(insertEmoji('阿蒙回来',2,2,'😊'),{text:'阿蒙😊回来',caret:4});
+ assert.deepEqual(insertEmoji('阿蒙想你',2,3,'❤️'),{text:'阿蒙❤️你',caret:4});
+ const before='你好👨‍👩‍👧‍👦';
+ assert.deepEqual(eraseEmoji(before,before.length),{text:'你好',caret:2});
+ const markup=renderWeChatChat(initialState(),'group');
+ assert.match(markup,/class="wx-emoji-panel" hidden/);
+ assert.match(markup,/aria-label="表情"/);
 });

@@ -1,9 +1,10 @@
 import {sendChat,attachChat} from '../../components/chat.js';
 import {createConversation,actors,isGroup} from '../../editor/conversations/model.js';
 import {renderWeChatHome,routeForTab} from './components/views.js';
-import {renderWeChatChat,wechatConversation} from './components/chat-view.js';
+import {renderWeChatChat,wechatConversation,smileIcon,keyboardIcon} from './components/chat-view.js';
 import {recallWeChatMessage} from './features/recall/index.js';
 import {speakWeChatText} from './features/tts/index.js';
+import {selectEmojiCategory,editEmojiInput} from './features/emoji/index.js';
 import {esc} from '../../system/ui.js';
 
 export const manifest={id:'wechat',name:'微信',icon:0,defaultRoute:'/',supportsDeepLink:true,kicker:'MESSAGES'};
@@ -33,6 +34,24 @@ function currentMessage(ctx,messageId){
   return {id,message};
 }
 
+function emojiPanelFor(target){return target.closest('.wx-conversation')?.querySelector('.wx-emoji-panel');}
+function showEmojiPanel(conversation,open,{focusKeyboard=false}={}){
+  const panel=conversation?.querySelector('.wx-emoji-panel'),input=conversation?.querySelector('.wx-composer input[name="text"]'),toggle=conversation?.querySelector('[data-action="wx-emoji"]');
+  if(!panel||!input||!toggle)return;
+  panel.hidden=!open;
+  toggle.innerHTML=open?keyboardIcon:smileIcon;
+  toggle.setAttribute('aria-label',open?'切换到键盘':'表情');
+  toggle.setAttribute('aria-expanded',String(open));
+  if(open){input.blur();const messages=conversation.querySelector('.wx-chat-messages');if(messages)messages.scrollTop=messages.scrollHeight;}
+  else if(focusKeyboard)input.focus();
+}
+
+export function dismissEmojiForKeyboard(input){
+  if(!input?.matches('.wx-composer input[name="text"]'))return;
+  const conversation=input.closest('.wx-conversation');
+  if(conversation?.querySelector('.wx-emoji-panel:not([hidden])'))showEmojiPanel(conversation,false);
+}
+
 export function handle(action,target,ctx){
   if(action==='wx-message-options'){openMessageMenu(target);return;}
   if(action==='wx-message-menu-close'){const menu=target.closest('.wx-conversation')?.querySelector('.wx-message-menu');if(menu)menu.hidden=true;return;}
@@ -54,8 +73,17 @@ export function handle(action,target,ctx){
     return;
   }
   if(action==='wx-emoji'){
-    const input=target.closest('.wx-composer')?.elements.text;
-    if(input){input.value+='😊';input.dispatchEvent(new Event('input',{bubbles:true}));input.focus();}
+    const conversation=target.closest('.wx-conversation'),panel=emojiPanelFor(target);
+    if(panel)showEmojiPanel(conversation,panel.hidden,{focusKeyboard:!panel.hidden});
+    return;
+  }
+  if(action==='wx-emoji-category'){
+    selectEmojiCategory(emojiPanelFor(target),target.dataset.category);
+    return;
+  }
+  if(action==='wx-emoji-insert'||action==='wx-emoji-delete'){
+    const input=target.closest('.wx-conversation')?.querySelector('.wx-composer input[name="text"]');
+    editEmojiInput(input,action==='wx-emoji-insert'?target.dataset.emoji:null);
     return;
   }
   if(action==='wx-chat-more'){

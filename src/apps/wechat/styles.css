@@ -108,12 +108,12 @@
 @supports (padding: max(0px, 1px)){@media(max-width:600px){.app-view.app-wechat:not(.has-chat){padding-top:max(45px,env(safe-area-inset-top,0px))}}}
 
 /* 微信聊天二级页：原生灰白对话系统，与手机桌面玻璃效果彻底隔离。 */
-.app-view.app-wechat.has-chat{padding-top:0;background:#ededed;color:#191919;backdrop-filter:none;-webkit-backdrop-filter:none}
+.app-view.app-wechat.has-chat{padding-top:60px;background:#ededed;color:#191919;backdrop-filter:none;-webkit-backdrop-filter:none}
 .app-view.app-wechat.has-chat .app-content{padding:0;overflow:hidden;background:#ededed}
 .app-wechat.has-chat .wx-native-nav{height:52px;min-height:52px;padding:0 12px;background:#ededed;border-bottom:1px solid #e3e3e3;color:#161616;position:relative}
 .app-wechat .wx-native-nav>strong{position:absolute;left:52px;right:52px;top:50%;transform:translateY(-50%);text-align:center;font-size:17px;font-weight:600;white-space:nowrap;text-overflow:ellipsis;overflow:hidden;pointer-events:none;letter-spacing:0}
-.app-wechat .wx-native-nav .nav-back{font-family:Arial,sans-serif;color:#181818;width:38px;height:46px;font-size:39px;line-height:1;font-weight:300;display:flex;justify-content:flex-start;align-items:center;padding:0 0 5px 2px}
-.app-wechat .wx-native-nav .wx-native-more{color:#191919;font-size:24px;letter-spacing:1px;width:42px;min-width:42px;transform:none;align-self:center;display:grid;place-items:center;font-weight:600}
+.app-wechat .wx-native-nav .nav-back{color:#181818;width:40px;height:46px;display:grid;place-items:center;padding:0;transform:none}
+.app-wechat .wx-native-nav .wx-native-more{color:#191919;width:42px;min-width:42px;height:46px;padding:0;transform:none;align-self:center;display:grid;place-items:center}
 .app-wechat .wx-conversation{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC",sans-serif;background:#ededed;color:#191919;min-height:0;height:100%;position:relative;display:flex;flex-direction:column}
 .app-wechat .wx-chat-messages{background:#ededed!important;padding:8px 13px 16px;overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none;min-height:0;flex:1}
 .app-wechat .wx-chat-messages::-webkit-scrollbar{display:none}
@@ -138,7 +138,7 @@
 .wx-invite-title{font-size:16px;font-weight:600;padding-bottom:8px;border-bottom:1px solid #eee}
 .wx-invite button{background:#07c160;color:#fff;border-radius:4px;padding:7px}
 .wx-recall-notice{font-size:12px;color:#aaa;text-align:center;line-height:1.6;margin:17px 0 24px}
-.app-wechat .wx-composer{min-height:57px;display:flex;flex-shrink:0;align-items:center;gap:9px;padding:6px 10px 9px;background:#f7f7f7;border-top:1px solid #d9d9d9;backdrop-filter:none;-webkit-backdrop-filter:none;position:relative;color:#191919;box-shadow:none}
+.app-wechat .wx-composer{min-height:78px;display:flex;flex-shrink:0;align-items:center;gap:9px;padding:6px 10px 29px;background:#f7f7f7;border-top:1px solid #d9d9d9;backdrop-filter:none;-webkit-backdrop-filter:none;position:relative;color:#191919;box-shadow:none}
 .app-wechat .wx-composer-icon{width:30px;height:38px;flex:0 0 30px;padding:0;display:grid;place-items:center;color:#262626;border:0;background:transparent;transform:none;border-radius:0}
 .app-wechat .wx-composer-icon:active{opacity:.6;transform:none}
 .app-wechat .wx-composer input{flex:1;min-width:0;height:39px;min-height:39px;font-size:16px;line-height:39px;padding:0 8px;margin:0;background:#fff;border:1px solid #fff;color:#171717;border-radius:5px;box-shadow:none;outline:0}
@@ -146,6 +146,17 @@
 .app-wechat .wx-composer-send{background:#07c160;color:white;border-radius:5px;min-width:40px;height:33px;padding:0 7px;font-size:13px;flex-shrink:0;transform:none}
 .app-wechat .wx-composer input:placeholder-shown~.wx-composer-send{display:none}
 .app-wechat .wx-composer:has(input:not(:placeholder-shown)) [data-action="attach-chat"]{display:none}
+.wx-emoji-panel{height:min(279px,37vh);min-height:204px;flex:0 0 auto;display:flex;flex-direction:column;background:#f3f3f5;border-top:1px solid #e0e0e0;overflow:hidden;user-select:none;-webkit-user-select:none}
+.wx-emoji-panel[hidden]{display:none}
+.wx-emoji-grid{min-height:0;flex:1;overflow-x:hidden;overflow-y:auto;display:grid;grid-template-columns:repeat(8,minmax(0,1fr));grid-auto-rows:43px;gap:2px 0;padding:9px 6px 12px;align-content:start;scrollbar-width:none;overscroll-behavior:contain}
+.wx-emoji-grid::-webkit-scrollbar{display:none}
+.app-wechat .wx-emoji-item{height:41px;width:100%;min-width:0;padding:0;display:grid;place-items:center;border:0;border-radius:5px;background:none;font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif;font-size:29px;font-weight:400;line-height:1.2;color:#222;transform:none}
+.app-wechat .wx-emoji-item:active{background:#dedee1;transform:none}
+.wx-emoji-tabs{display:flex;align-items:center;gap:3px;height:73px;min-height:73px;background:#ededf0;border-top:1px solid #e5e5e8;padding:3px 8px 27px}
+.app-wechat .wx-emoji-category{height:40px;min-width:47px;border:0;border-radius:5px;background:transparent;font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif;font-size:22px;color:#aaa;display:grid;place-items:center;transform:none}
+.app-wechat .wx-emoji-category.selected{background:#fff;box-shadow:0 1px 2px #00000010}
+.app-wechat .wx-emoji-delete{min-width:46px;margin-left:auto;height:40px;padding:0 7px;color:#505050;font-size:27px;font-weight:300;display:grid;place-items:center;border-radius:5px;transform:none}
+.app-wechat .wx-emoji-delete:active{background:#dedee1}
 .wx-message-menu{position:absolute;z-index:10;display:flex;align-items:center;gap:1px;background:#343434;color:#fff;border-radius:7px;padding:0 4px;box-shadow:0 5px 18px #0003;white-space:nowrap;min-height:44px}
 .wx-message-menu[hidden]{display:none}
 .wx-message-menu:after{content:"";position:absolute;bottom:-5px;left:calc(50% - 5px);width:10px;height:10px;transform:rotate(45deg);background:#343434}
@@ -158,6 +169,7 @@
 .wx-group-cell>span{font-size:9px;color:#555;display:grid;place-items:center;height:100%}
 #phone:has(.app-wechat.has-chat) #status-layer{background:#ededed;color:#171717}
 #phone:has(.app-wechat.has-chat) #homebar span{background:#171717}
+.app-wechat .wx-conversation:has(.wx-emoji-panel:not([hidden])) .wx-composer{min-height:57px;padding-bottom:9px}
 #phone.keyboard-open .app-wechat .wx-composer{padding-bottom:6px}
 @media(max-width:370px){.app-wechat .wx-composer{gap:5px;padding-left:7px;padding-right:7px}.app-wechat .wx-composer-icon{width:28px;flex-basis:28px}.app-wechat .wx-bubble{font-size:15px}}
 
