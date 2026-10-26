@@ -25,7 +25,7 @@ export function appFrame(s,app,body){
   const id=loc.route.startsWith('/chat/')?loc.route.slice(6):null;
   const c=id?s.content.conversations[app.manifest.id]?.find(c=>c.id===id):null;
   const p=app.manifest.id==='noapp'&&id==='tai'?taiPresence(s):null;
-  const viewKey=(app.manifest.id==='wechat'&&['/','/contacts','/discover','/me'].includes(loc.route))?'wechat-tabs':(app.manifest.id==='photos'&&['/','/collections'].includes(loc.route))?'photos-tabs':app.manifest.id+loc.route;
+  const viewKey=(app.manifest.id==='wechat'&&['/','/contacts','/discover','/me'].includes(loc.route))?'wechat-tabs':(app.manifest.id==='photos'&&['/','/collections'].includes(loc.route))?'photos-tabs':(app.manifest.id==='mirage'&&['/','/contacts','/bounties','/bounties/completed','/market','/manage'].includes(loc.route))?'mirage-tabs':app.manifest.id+loc.route;
   const wechatChat=app.manifest.id==='wechat'&&!!c,displayName=c?.name||app.manifest.name;
   const nav=wechatChat?
     `<div class="app-nav wx-native-nav">${btn('back',wxBackIcon,'nav-back','aria-label="返回微信"')}<strong>${esc(displayName)}${isGroup(c)?' ('+actors(c).length+')':''}</strong>${btn('wx-chat-more',wxMoreIcon,'nav-home wx-native-more','aria-label="聊天详情"')}</div>`:

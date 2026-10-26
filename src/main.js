@@ -63,7 +63,7 @@ function render(){
  let body;
  if(!s.unlocked)body=lock(s,lockscreen.stage,lockscreen.digits);
  else if(current.appId==='home')body=home(s);
- else{const app=registry.get(current.appId);body=app?appFrame(s,app,app.render(ctx(),current)):'<div class="empty">App 不可用</div>';}
+ else{const app=registry.get(current.appId);if(current.appId==='mirage'&&lastLocation?.appId!=='mirage')app?.onEnter?.();body=app?appFrame(s,app,app.render(ctx(),current)):'<div class="empty">App 不可用</div>';}
  patchHTML(screen,body);
  if(navigation===lastNavigation&&actorsOpen&&$('.editor-actors'))$('.editor-actors').open=true;
  if(changed&&s.unlocked&&!nativeTabSwitch)animateNavigation(previous);
@@ -125,6 +125,7 @@ setInterval(()=>{try{const delivered=delivery.tick(Date.now(),!document.hidden);
 $('#root').addEventListener('click',async e=>{
   const openedMessageMenu=$('#screen-layer .wx-message-menu:not([hidden])');
   if(openedMessageMenu&&!e.target.closest('.wx-message-menu,.wx-bubble'))openedMessageMenu.hidden=true;
+  if(e.target.matches('.mc-login [data-mirage-account]')){registry.get('mirage')?.accountTap?.(e.target);return;}
   const target=e.target.closest('[data-action]');if(!target)return;
   const action=target.dataset.action;
   try{

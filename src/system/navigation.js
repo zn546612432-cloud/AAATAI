@@ -12,4 +12,6 @@ export function isPhotosTabSwitch(before,after){
  return before?.appId==='photos'&&after?.appId==='photos'&&
   before.route!==after.route&&PHOTOS_TABS.has(before.route)&&PHOTOS_TABS.has(after.route);
 }
-export const isNativeTabSwitch=(before,after)=>isWeChatTabSwitch(before,after)||isPhotosTabSwitch(before,after);
+const MIRAGE_TABS=new Set(['/','/contacts','/bounties','/bounties/completed','/market','/manage']);
+export const isMirageTabSwitch=(before,after)=>before?.appId==='mirage'&&after?.appId==='mirage'&&before.route!==after.route&&MIRAGE_TABS.has(before.route)&&MIRAGE_TABS.has(after.route);
+export const isNativeTabSwitch=(before,after)=>isWeChatTabSwitch(before,after)||isPhotosTabSwitch(before,after)||isMirageTabSwitch(before,after);
