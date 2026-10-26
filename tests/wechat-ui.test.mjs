@@ -27,7 +27,8 @@ test('wechat reads the existing editable conversations instead of inventing dial
   assert.match(html,/熙旺/);
   assert.match(html,/GROUP/);
   assert.match(html,/data-action="open-chat"/);
-  assert.match(html,/DEMO/);
+  assert.doesNotMatch(html,/DEMO/);
+  assert.match(html,/wx-group-avatar/);
 });
 test('contacts connect to story group participants and existing conversations',()=>{
   const html=renderWeChatHome(mock,'/contacts');

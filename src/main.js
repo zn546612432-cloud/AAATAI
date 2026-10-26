@@ -123,6 +123,8 @@ store.subscribe(()=>{if(!quietEditorUpdate)render();});render();
 mountInteractions($('#root'),ctx());
 setInterval(()=>{try{const delivered=delivery.tick(Date.now(),!document.hidden);if(delivered.length&&store.get().unlocked){const incoming=delivered.find(m=>m.from!=='me'&&!isConversationOpen(store.get(),m.channel,m.conversationId));if(incoming)toast(`${incoming.title}：${incoming.body}`);}}catch(err){toast(err.message||'消息未能保存');}},500);
 $('#root').addEventListener('click',async e=>{
+  const openedMessageMenu=$('#screen-layer .wx-message-menu:not([hidden])');
+  if(openedMessageMenu&&!e.target.closest('.wx-message-menu,.wx-bubble'))openedMessageMenu.hidden=true;
   const target=e.target.closest('[data-action]');if(!target)return;
   const action=target.dataset.action;
   try{
@@ -146,6 +148,26 @@ $('#root').addEventListener('click',async e=>{
     const app=registry.get(store.get().nav.current.appId);
     if(app?.handle)await app.handle(action,target,ctx(),store.get().nav.current);
   }catch(err){toast(err.message||'操作未完成');}
+});
+// WeChat message actions also open on a real long press (as well as tap/right-click).
+let messageHoldTimer=null,messageHoldPoint=null;
+const cancelMessageHold=()=>{clearTimeout(messageHoldTimer);messageHoldTimer=null;messageHoldPoint=null;};
+$('#root').addEventListener('pointerdown',e=>{
+  if(e.pointerType==='mouse')return;
+  const bubble=e.target.closest('.app-wechat .wx-bubble');
+  if(!bubble)return;
+  cancelMessageHold();messageHoldPoint={x:e.clientX,y:e.clientY};
+  messageHoldTimer=setTimeout(()=>{registry.get('wechat')?.openMessageMenu?.(bubble);messageHoldTimer=null;},530);
+});
+$('#root').addEventListener('pointermove',e=>{
+  if(messageHoldPoint&&Math.hypot(e.clientX-messageHoldPoint.x,e.clientY-messageHoldPoint.y)>9)cancelMessageHold();
+});
+$('#root').addEventListener('pointerup',cancelMessageHold);
+$('#root').addEventListener('pointercancel',cancelMessageHold);
+$('#root').addEventListener('contextmenu',e=>{
+  const bubble=e.target.closest('.app-wechat .wx-bubble');
+  if(!bubble)return;
+  e.preventDefault();cancelMessageHold();registry.get('wechat')?.openMessageMenu?.(bubble);
 });
 $('#root').addEventListener('submit',e=>{if(!store.get().unlocked){e.preventDefault();return;}const app=registry.get(store.get().nav.current.appId);if(!app?.submit)return;e.preventDefault();try{app.submit(e.target,ctx(),store.get().nav.current);}catch(err){toast(err.message);}});
 $('#root').addEventListener('input',e=>{if(!store.get().unlocked)return;if(e.target.matches('.composer input[name="text"]')){try{quietEditorUpdate=true;store.update(s=>{s.drafts[e.target.form.dataset.id]=e.target.value;});}finally{quietEditorUpdate=false;}return;}const app=registry.get(store.get().nav.current.appId);if(!app?.input)return;try{quietEditorUpdate=true;app.input(e.target,ctx());}catch(err){toast(err.message);}finally{quietEditorUpdate=false;}});

@@ -1,8 +1,9 @@
-import {esc,demo} from '../../../system/ui.js';
+import {esc} from '../../../system/ui.js';
 import {visibleMessages} from '../../../services/messaging/delivery.js';
 import {actors,isGroup} from '../../../editor/conversations/model.js';
 import {wxIcon} from './icons.js';
 import {resolveWeChatAvatar,wechatAvatars} from '../avatars.js';
+import {groupAvatar} from './group-avatar.js';
 
 const tabs=[
   {id:'chats',label:'微信',icon:'chats',route:'/'},
@@ -60,13 +61,13 @@ function chats(s){
   const title=header('微信',iconButton('wx-toggle-menu','plus','更多操作'))+menu();
   const rows=conversations.map((c,i)=>{
     const last=visibleMessages(c).at(-1);
-    const preview=last?(last.kind==='image'?'[图片]':last.kind==='app_invitation'?'[邀请]':last.text||''):'暂无消息';
+    const preview=last?(last.kind==='recalled'?'你撤回了一条消息':last.kind==='image'?'[图片]':last.kind==='app_invitation'?'[邀请]':last.text||''):'暂无消息';
     const time=last?.time||'';
     const unread=Math.max(0,Number(c.unread)||0);
     return '<button type="button" class="wx-chat-row" data-action="open-chat" data-id="'+esc(c.id)+'" data-wx-filter="'+esc(c.name+' '+preview)+'">'+
-      '<span class="wx-chat-avatar-wrap">'+avatar(c.name,resolveWeChatAvatar(c.name,c.avatar),'wx-avatar-'+(i%5))+(unread?'<span class="wx-chat-unread">'+(unread>99?'99+':unread)+'</span>':'')+'</span>'+ 
+      '<span class="wx-chat-avatar-wrap">'+(isGroup(c)?groupAvatar(c):avatar(c.name,resolveWeChatAvatar(c.name,c.avatar),'wx-avatar-'+(i%5)))+(unread?'<span class="wx-chat-unread">'+(unread>99?'99+':unread)+'</span>':'')+'</span>'+ 
       '<span class="wx-chat-main"><span class="wx-chat-top"><strong>'+esc(c.name)+'</strong><time>'+esc(time)+'</time></span>'+
-      '<span class="wx-chat-preview">'+esc(preview)+(last?.demo?' '+demo():'')+'</span></span></button>';
+      '<span class="wx-chat-preview">'+esc(preview)+'</span></span></button>';
   }).join('');
   return frame('chats',title+'<div class="wx-search-region">'+searchBox()+'</div><div class="wx-scroll wx-chat-list">'+(rows||'<p class="wx-empty">暂无聊天，新的对话会显示在这里。</p>')+'</div>',s);
 }

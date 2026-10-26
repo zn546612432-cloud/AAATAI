@@ -16,6 +16,7 @@ export const avatar=(name,variant='')=>{
  return `<span class="avatar ${variant}">${isImage?`<img src="${esc(value)}" alt="" draggable="false">`:esc(value.slice(0,1))}</span>`;
 };
 export const section=(title,body)=>`<section class="section"><div class="section-heading">${title}</div>${body}</section>`;
-export const demo=()=>'<span class="demo-tag">DEMO</span>';
+// Demo fixtures remain editable in the developer panel but never show debug badges to players.
+export const demo=()=>'';
 export const empty=(title,desc='')=>`<div class="empty"><span class="empty-orbit">✦</span><strong>${title}</strong><p>${desc}</p></div>`;
 export const card=(body,cls='')=>`<div class="card ${cls}">${body}</div>`;
