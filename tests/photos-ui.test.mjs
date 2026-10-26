@@ -45,7 +45,7 @@ test('five-column Photos layout starts with zero user photos, without mock thumb
  assert.match(css,/grid-template-columns:repeat\(5,minmax\(0,1fr\)\)/);
  assert.match(css,/backdrop-filter:blur/);
  assert.match(css,/#phone:has\(\.ph-screen\) #homebar\{opacity:0/);
- assert.match(css,/\.app-view\.app-photos\{padding-top:0/);
+ assert.match(css,/\.app-view\.app-photos\{padding-top:calc\(60px \+ env\(safe-area-inset-top,0px\)\)/);
 });
 test('only real imported photos render, and survive reload through store state',()=>{
  const own={id:'saved-1',src:'data:image/png;base64,AAAA',title:'我的图片',favorite:true,actual:true};
@@ -90,4 +90,18 @@ test('photos remain decomposed into one folder per feature',()=>{
  }
  const index=readFileSync(new URL('../index.html',import.meta.url),'utf8');
  assert.match(index,/src\/apps\/photos\/styles\.css/);
+});
+test('every nested Photos view exposes a back button, including a missing image',()=>{
+ const own={id:'saved-1',src:'data:image/png;base64,AAAA',title:'照片测试',actual:true};
+ const testCtx={store:{get:()=>({content:{photos:[own]}})}};
+ for(const loc of [
+  {route:'/photo',params:{photoId:'saved-1'}},
+  {route:'/photo',params:{photoId:'does-not-exist'}},
+  {route:'/search',params:{}},
+  {route:'/album',params:{kind:'recent',title:'最近保存'}}
+ ]){
+  const html=render(testCtx,loc);
+  assert.match(html,/data-action="back" aria-label="返回上一页"/);
+  assert.match(html,/ph-icon-back/);
+ }
 });
