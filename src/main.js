@@ -15,7 +15,7 @@ import {errorHaptic} from './system/haptics.js';
 
 const store=new PhoneStore(),router=new PhoneRouter(store,registry),lockscreen=new LockScreen();
 mountShell();
-let shade=false,toastTimer,assetHandler=null,entryAnimation=false,lastNavigation=null,quietEditorUpdate=false,draggingHome=false,pagerBase=null;
+let shade=false,toastTimer,assetHandler=null,entryAnimation=false,lastNavigation=null,quietEditorUpdate=false,draggingHome=false,pagerBase=null,unlockingCover=false;
 const delivery=new MessageDelivery(store);
 // Opening the display always requires a new unlock, without removing saved content.
 if(store.get().unlocked)store.update(s=>{s.unlocked=false;});
@@ -59,7 +59,27 @@ function render(){
  if(nextPane){const added=[...nextPane.querySelectorAll('.message-row[data-key]')].filter(el=>!oldKeys.has(el.dataset.key));if(!changed&&!window.matchMedia('(prefers-reduced-motion: reduce)').matches)for(const row of added)row.animate([{opacity:0,transform:'translateY(7px)'},{opacity:1,transform:'translateY(0)'}],{duration:180,easing:'ease-out'});if(changed||nearBottom)nextPane.scrollTop=nextPane.scrollHeight;}
  lastNavigation=navigation;
 }
-function requestUnlock(link=null){setShade({progress:0});lockscreen.open(link);render();}
+function requestUnlock(link=null){
+ if(lockscreen.stage!=='cover'||unlockingCover)return;
+ setShade({progress:0});
+ const cover=$('.lock-screen');
+ const reduced=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+ if(!cover||reduced||typeof cover.animate!=='function'){lockscreen.open(link);render();return;}
+ unlockingCover=true;
+ const computed=getComputedStyle(cover);
+ const startTransform=computed.transform==='none'?'translateY(0)':computed.transform;
+ const animation=cover.animate([
+  {transform:startTransform,opacity:Number(computed.opacity)||1},
+  {transform:'translateY(-100%)',opacity:0}
+ ],{duration:270,easing:'cubic-bezier(.3,.02,.3,1)',fill:'forwards'});
+ animation.finished.catch(()=>{}).finally(()=>{
+  animation.cancel();
+  cover.style.transform='';
+  cover.style.opacity='';
+  unlockingCover=false;
+  lockscreen.open(link);render();
+ });
+}
 function enterDigit(key){
   const result=lockscreen.key(key);
   if(result==='ignored')return;
@@ -90,6 +110,7 @@ $('#root').addEventListener('click',async e=>{
   const target=e.target.closest('[data-action]');if(!target)return;
   const action=target.dataset.action;
   try{
+    if(action==='home'&&shade){setShade({progress:0});return;}
     if(!store.get().unlocked){
       if(action==='close-shade'){setShade({progress:0});return;}
       if(action==='unlock'||action==='home'){if(lockscreen.stage==='cover')requestUnlock();return;}
@@ -132,9 +153,16 @@ mountGestures($('#phone'),{
   }
   const from=nearestPage(pagerBase,width,count),target=cancel?from:pageTarget({from,offset,velocity,width,count});
   pagerBase=null;draggingHome=false;track.style.transition='';
-  // The re-render below swaps the inline transform for the target page, so the CSS transition
-  // glides from the release position to the target page.
   store.update(s=>{s.homePage=target;});
+  // Patching the inline transform and transition in one frame suppresses the CSS
+  // transition in Safari. Animate from the actual finger release pixel position.
+  const settled=$('#screen-layer .home-track');
+  if(settled&&Math.abs(offset+target*width)>1&&!window.matchMedia('(prefers-reduced-motion: reduce)').matches){
+   settled.animate([
+    {transform:`translate3d(${offset}px,0,0)`},
+    {transform:`translate3d(${-target*width}px,0,0)`}
+   ],{duration:360,easing:'cubic-bezier(.2,.8,.22,1)'});
+  }
  },
  shade:setShade,
  unlock:()=>{if(lockscreen.stage==='cover')requestUnlock();}

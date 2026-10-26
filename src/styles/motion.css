@@ -42,13 +42,14 @@
 .app-light-active #status-layer{color:#243f52}
 .app-light-active #homebar span{background:#456277}
 #status-layer{z-index:45;touch-action:none}
-#homebar{z-index:46;transition:opacity .18s}
+#homebar{z-index:46;transition:opacity .18s;touch-action:none}
+#phone.notification-open #homebar span{background:#ffffffeb;box-shadow:0 1px 9px #0b213e7a}
 #phone.keyboard-open #homebar{opacity:0;pointer-events:none}
 .keyboard-open .composer,.keyboard-open .app-noapp .composer{padding-bottom:10px}
 #toast{bottom:calc(42px + env(safe-area-inset-bottom,0px));max-height:100px;overflow:hidden;background:#e6f3f7d9;backdrop-filter:blur(28px);-webkit-backdrop-filter:blur(28px);pointer-events:none}
 .keyboard-open #toast{bottom:70px}
 #shade-layer,#shade-layer:not(:empty){position:absolute;inset:0;z-index:36;background:transparent;backdrop-filter:none;-webkit-backdrop-filter:none;pointer-events:none;overflow:hidden;--shade-progress:0}
-#shade-layer.is-present:not(:empty){pointer-events:auto}
+#shade-layer.is-present:not(:empty){pointer-events:auto;touch-action:none}
 .shade{height:100%;padding:calc(82px + env(safe-area-inset-top,0px)) 22px calc(36px + env(safe-area-inset-bottom,0px));color:#fff;
  background:linear-gradient(180deg,rgba(255,255,255,.2) 0%,rgba(205,228,248,.1) 42%,rgba(150,185,220,.07) 100%);
  backdrop-filter:blur(32px) saturate(1.8) brightness(1.06);-webkit-backdrop-filter:blur(32px) saturate(1.8) brightness(1.06);
