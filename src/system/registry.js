@@ -3,5 +3,5 @@ const modules=[wechat,noapp,chess,mirage,ghost,kira,bank,schedule,messages,phone
 export const registry=new Map(modules.map(m=>[m.manifest.id,m]));
 export const installed=s=>[...registry.values()].filter(m=>!m.manifest.hidden&&(!m.manifest.unlockDay||s.day>=m.manifest.unlockDay)).map(m=>m.manifest);
 export const appById=id=>registry.get(id);
-export const homePages=[['wechat','photos','camera','notes','calendar','weather','maps','clock'],['mirage','ghost','kira','bank','chess','files','music','schedule'],['messages','mail','reminders','aomi','browser','phone','instagram','noapp']];
-export const dockApps=['phone','wechat','browser','settings'];
+export const homePages=[['wechat','photos','camera','notes','calendar','weather','maps','clock'],['mirage','ghost','kira','bank','chess','files','music','schedule'],['reminders','aomi','browser','instagram','noapp','settings']];
+export const dockApps=['phone','messages'];
