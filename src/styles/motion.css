@@ -3,12 +3,15 @@
 #transition-layer{position:absolute;inset:0;z-index:22;pointer-events:none;overflow:hidden}
 #transition-layer>*{position:absolute;inset:0;width:100%;height:100%}
 .home-screen,.app-view{animation:none}
-.home-screen{padding:calc(78px + env(safe-area-inset-top,0px)) 14px calc(32px + env(safe-area-inset-bottom,0px));touch-action:none}
+.home-screen{--home-gutter:14px;padding:calc(78px + env(safe-area-inset-top,0px)) var(--home-gutter) calc(32px + env(safe-area-inset-bottom,0px));touch-action:none}
 .home-top{padding:0 8px;margin-top:0}
-.home-pager{flex:1;min-height:0;position:relative;overflow:visible}
-.home-track{height:100%;display:flex;transform:translate3d(0,0,0);transition:transform .34s cubic-bezier(.2,.75,.25,1);will-change:transform}
-.home-page{flex:0 0 100%;min-width:0;padding:0 8px;display:flex;flex-direction:column}
+/* The pager spans the full screen width and each page re-adds the gutter as padding: pages slide edge to edge
+   while the page next to the current one stays completely off-screen at rest. */
+.home-pager{flex:1;min-height:0;position:relative;overflow:visible;margin:0 calc(var(--home-gutter) * -1)}
+.home-track{height:100%;display:flex;transform:translate3d(0,0,0);transition:transform .4s cubic-bezier(.22,.9,.3,1);will-change:transform}
+.home-page{flex:0 0 100%;min-width:0;padding:0 calc(var(--home-gutter) + 8px);display:flex;flex-direction:column}
 .home-dock,.page-dots{position:relative;z-index:2;flex-shrink:0}
+.page-dots i{transition:width .3s cubic-bezier(.22,.9,.3,1),background-color .3s}
 .home-dock{margin-bottom:0}
 .lock-screen{padding-top:calc(88px + env(safe-area-inset-top,0px));padding-bottom:calc(44px + env(safe-area-inset-bottom,0px))}
 .app-view{padding-top:calc(60px + env(safe-area-inset-top,0px));background:#e9f1f7dc;backdrop-filter:blur(32px) saturate(1.25);-webkit-backdrop-filter:blur(32px) saturate(1.25);min-height:0}
@@ -46,9 +49,19 @@
 .keyboard-open #toast{bottom:70px}
 #shade-layer,#shade-layer:not(:empty){position:absolute;inset:0;z-index:36;background:transparent;backdrop-filter:none;-webkit-backdrop-filter:none;pointer-events:none;overflow:hidden;--shade-progress:0}
 #shade-layer.is-present:not(:empty){pointer-events:auto}
-.shade{height:100%;padding:calc(82px + env(safe-area-inset-top,0px)) 22px calc(36px + env(safe-area-inset-bottom,0px));background:#10243ad9;backdrop-filter:blur(36px) saturate(1.3);-webkit-backdrop-filter:blur(36px) saturate(1.3);transform:translate3d(0,calc((var(--shade-progress) - 1)*100%),0);transition:transform .32s cubic-bezier(.2,.75,.25,1);overflow:auto;touch-action:none;will-change:transform}
+.shade{height:100%;padding:calc(82px + env(safe-area-inset-top,0px)) 22px calc(36px + env(safe-area-inset-bottom,0px));color:#fff;
+ background:linear-gradient(180deg,rgba(255,255,255,.2) 0%,rgba(205,228,248,.1) 42%,rgba(150,185,220,.07) 100%);
+ backdrop-filter:blur(32px) saturate(1.8) brightness(1.06);-webkit-backdrop-filter:blur(32px) saturate(1.8) brightness(1.06);
+ box-shadow:inset 0 1px 0 rgba(255,255,255,.34),inset 0 -1px 0 rgba(255,255,255,.14);text-shadow:0 1px 10px rgba(4,14,30,.38);
+ transform:translate3d(0,calc((var(--shade-progress) - 1)*100%),0);transition:transform .32s cubic-bezier(.2,.75,.25,1);overflow:auto;touch-action:none;will-change:transform}
+/* While closed the glass layer is hidden so the browser does not keep blurring an off-screen sheet. */
+#shade-layer:not(.is-present) .shade{visibility:hidden;transition:transform .32s cubic-bezier(.2,.75,.25,1),visibility 0s linear .32s}
 #shade-layer.is-dragging .shade{transition:none}
-.shade-notification{background:#daeefa25;border:1px solid #e6f8ff24}
+.shade-notification{background:rgba(255,255,255,.17);border:1px solid rgba(255,255,255,.3);box-shadow:inset 0 1px 0 rgba(255,255,255,.34),0 10px 28px rgba(3,10,24,.2)}
+.shade .eyebrow,.shade .muted{color:rgba(255,255,255,.78)}
+.shade .text-button{color:#fff}
+.shade .demo-tag,.lock-notification .demo-tag{background:rgba(255,255,255,.2);color:rgba(255,255,255,.9)}
+.shade-grip{background:rgba(255,255,255,.55)}
 .shade h2{font-weight:550}
 .viewport-mobile #root{position:fixed;left:0;right:0;top:var(--viewport-top,0px);height:var(--visual-height,100dvh)}
 .viewport-mobile #phone{height:100%;min-height:0;width:100%;border-radius:0}
@@ -59,3 +72,6 @@
 .notification-open #status-layer{color:#f0f8ff}
 .passcode-panel{animation:keypad-appear .2s ease both}
 @keyframes keypad-appear{from{opacity:0}to{opacity:1}}
+.sr-only{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+@media(prefers-reduced-motion:reduce){.lock-error .passcode-dots{animation:passcode-flash .5s ease!important}}
+@keyframes passcode-flash{0%,100%{opacity:1}30%,70%{opacity:.25}}

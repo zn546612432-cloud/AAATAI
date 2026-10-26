@@ -10,10 +10,12 @@ import {mountInteractions} from './editor/index.js';
 import {patchHTML} from './system/dom.js';
 import {mountGestures} from './system/gestures.js';
 import {mountViewport} from './system/viewport.js';
+import {dragOffset,nearestPage,pageTarget} from './system/pager.js';
+import {errorHaptic} from './system/haptics.js';
 
 const store=new PhoneStore(),router=new PhoneRouter(store,registry),lockscreen=new LockScreen();
 mountShell();
-let shade=false,toastTimer,assetHandler=null,entryAnimation=false,lastNavigation=null,quietEditorUpdate=false,draggingHome=false;
+let shade=false,toastTimer,assetHandler=null,entryAnimation=false,lastNavigation=null,quietEditorUpdate=false,draggingHome=false,pagerBase=null;
 const delivery=new MessageDelivery(store);
 // Opening the display always requires a new unlock, without removing saved content.
 if(store.get().unlocked)store.update(s=>{s.unlocked=false;});
@@ -66,8 +68,11 @@ function enterDigit(key){
   const dots=$('.passcode-dots');
   if(dots){dots.setAttribute('aria-label',`已输入 ${lockscreen.digits.length} 位密码`);dots.querySelectorAll('i').forEach((dot,i)=>dot.classList.toggle('filled',i<lockscreen.digits.length));}
   if(result==='error'){
-    $('.lock-screen')?.classList.add('lock-error');toast('密码错误，请重试');
-    setTimeout(()=>{lockscreen.retry();render();},420);
+    // iOS behaviour: no dialog or toast. The four dots shake sideways, the phone pulses,
+    // then the dots empty and the keypad accepts a new attempt.
+    $('.lock-screen')?.classList.add('lock-error');
+    errorHaptic();
+    setTimeout(()=>{lockscreen.retry();render();},520);
   }
   if(result==='unlocking'){
     $('.lock-screen')?.classList.add('lock-unlocking');
@@ -113,7 +118,24 @@ mountViewport($('#phone'));
 setShade({progress:0});
 mountGestures($('#phone'),{
  state:()=>({home:store.get().unlocked&&store.get().nav.current.appId==='home',locked:!store.get().unlocked,shade,page:store.get().homePage||0}),
- page:({dx,index,settle})=>{const track=$('#screen-layer .home-track');if(!track)return;if(settle){draggingHome=false;track.style.transition='';store.update(s=>{s.homePage=index;});}else{draggingHome=true;const distance=(index===0&&dx>0||index===2&&dx<0)?dx*.25:dx;track.style.transition='none';track.style.transform=`translate3d(calc(${-index*100}% + ${distance}px),0,0)`;}},
+ page:({dx,velocity=0,cancel=false,settle})=>{
+  const track=$('#screen-layer .home-track');
+  if(!track){pagerBase=null;draggingHome=false;return;}
+  const width=track.parentElement.clientWidth||1,count=track.children.length||1;
+  // Start from where the track visually is, so grabbing it mid-animation does not jump.
+  if(pagerBase===null)pagerBase=new DOMMatrix(getComputedStyle(track).transform).m41;
+  const offset=dragOffset({base:pagerBase,dx,width,count});
+  if(!settle){
+   draggingHome=true;track.style.transition='none';track.style.transform=`translate3d(${offset}px,0,0)`;
+   const dots=$('#screen-layer .page-dots');if(dots){const near=nearestPage(offset,width,count);dots.querySelectorAll('button').forEach((dot,i)=>dot.classList.toggle('active',i===near));}
+   return;
+  }
+  const from=nearestPage(pagerBase,width,count),target=cancel?from:pageTarget({from,offset,velocity,width,count});
+  pagerBase=null;draggingHome=false;track.style.transition='';
+  // The re-render below swaps the inline transform for the target page, so the CSS transition
+  // glides from the release position to the target page.
+  store.update(s=>{s.homePage=target;});
+ },
  shade:setShade,
  unlock:()=>{if(lockscreen.stage==='cover')requestUnlock();}
 });
