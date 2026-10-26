@@ -11,11 +11,12 @@ import {patchHTML} from './system/dom.js';
 import {mountGestures} from './system/gestures.js';
 import {mountViewport} from './system/viewport.js';
 import {dragOffset,nearestPage,pageTarget} from './system/pager.js';
+import {isWeChatTabSwitch} from './system/navigation.js';
 import {errorHaptic} from './system/haptics.js';
 
 const store=new PhoneStore(),router=new PhoneRouter(store,registry),lockscreen=new LockScreen();
 mountShell();
-let shade=false,toastTimer,assetHandler=null,entryAnimation=false,lastNavigation=null,quietEditorUpdate=false,draggingHome=false,pagerBase=null,unlockingCover=false;
+let shade=false,toastTimer,assetHandler=null,entryAnimation=false,lastNavigation=null,lastLocation=null,quietEditorUpdate=false,draggingHome=false,pagerBase=null,unlockingCover=false,swipeHomeReturn=null;
 const delivery=new MessageDelivery(store);
 // Opening the display always requires a new unlock, without removing saved content.
 if(store.get().unlocked)store.update(s=>{s.unlocked=false;});
@@ -31,13 +32,26 @@ function animateNavigation(previous,direction=1){
  const layer=$('#transition-layer');layer.replaceChildren();
  if(window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;
  const current=$('#screen-layer').firstElementChild;
+ if(swipeHomeReturn){
+  const gesture=swipeHomeReturn;swipeHomeReturn=null;
+  if(previous){
+   previous.removeAttribute('id');previous.querySelectorAll('[id]').forEach(el=>el.removeAttribute('id'));
+   previous.inert=true;layer.append(previous);
+   previous.animate([
+    {opacity:1,transform:`translateY(${-gesture*0.2}px) scale(${1-Math.min(gesture/650,.22)})`,borderRadius:'20px'},
+    {opacity:0,transform:'translateY(-135px) scale(.36)',borderRadius:'34px'}
+   ],{duration:310,easing:'cubic-bezier(.28,.65,.25,1)',fill:'forwards'}).finished.catch(()=>{}).finally(()=>previous.remove());
+  }
+  current?.animate([{opacity:.6,transform:'scale(1.06)'},{opacity:1,transform:'scale(1)'}],{duration:350,easing:'cubic-bezier(.2,.8,.2,1)'});
+  return;
+ }
  if(previous){previous.removeAttribute('id');previous.querySelectorAll('[id]').forEach(el=>el.removeAttribute('id'));previous.inert=true;layer.append(previous);previous.querySelectorAll('[data-restore-scroll]').forEach(n=>{n.scrollTop=Number(n.dataset.restoreScroll);n.removeAttribute('data-restore-scroll');});previous.animate([{opacity:1,transform:'translateY(0) scale(1)'},{opacity:0,transform:`translateY(${-direction*8}px) scale(.99)`}],{duration:230,easing:'ease-out'}).finished.catch(()=>{}).finally(()=>previous.remove());}
  current?.animate([{opacity:0,transform:`translateY(${direction*14}px) scale(.985)`},{opacity:1,transform:'translateY(0) scale(1)'}],{duration:270,easing:'cubic-bezier(.2,.75,.25,1)'});
 }
 function render(){
  if(draggingHome)return;
  const s=store.get(),current=s.nav.current,navigation=s.unlocked?JSON.stringify(current):'lock';
- const changed=lastNavigation!==null&&navigation!==lastNavigation,screen=$('#screen-layer'),previous=changed?screen.firstElementChild?.cloneNode(true):null;
+ const changed=lastNavigation!==null&&navigation!==lastNavigation,nativeTabSwitch=changed&&isWeChatTabSwitch(lastLocation,current),screen=$('#screen-layer'),previous=changed&&!nativeTabSwitch?screen.firstElementChild?.cloneNode(true):null;
  if(previous){const nodes=screen.firstElementChild.querySelectorAll('.app-content,.chat-messages');previous.querySelectorAll('.app-content,.chat-messages').forEach((node,i)=>node.dataset.restoreScroll=String(nodes[i].scrollTop));}
  const oldScroll=$('#screen-layer #app-content')?.scrollTop,actorsOpen=$('.editor-actors')?.open;
  const messagePane=$('#screen-layer .chat-messages'),nearBottom=!messagePane||messagePane.scrollHeight-messagePane.clientHeight-messagePane.scrollTop<85;
@@ -52,12 +66,14 @@ function render(){
  else{const app=registry.get(current.appId);body=app?appFrame(s,app,app.render(ctx(),current)):'<div class="empty">App 不可用</div>';}
  patchHTML(screen,body);
  if(navigation===lastNavigation&&actorsOpen&&$('.editor-actors'))$('.editor-actors').open=true;
- if(changed&&s.unlocked)animateNavigation(previous);
+ if(changed&&s.unlocked&&!nativeTabSwitch)animateNavigation(previous);
+ if(nativeTabSwitch){const pane=screen.querySelector('.wx-scroll');if(pane)pane.scrollTop=0;}
  if(entryAnimation&&!window.matchMedia('(prefers-reduced-motion: reduce)').matches){screen.animate([{opacity:0,transform:'scale(1.08)'},{opacity:1,transform:'scale(1)'}],{duration:380,easing:'ease-out'});entryAnimation=false;}else if(entryAnimation)entryAnimation=false;
  if(navigation===lastNavigation&&oldScroll!==undefined&&$('#screen-layer #app-content'))$('#screen-layer #app-content').scrollTop=oldScroll;else router.restoreScroll();
  const nextPane=$('#screen-layer .chat-messages');
  if(nextPane){const added=[...nextPane.querySelectorAll('.message-row[data-key]')].filter(el=>!oldKeys.has(el.dataset.key));if(!changed&&!window.matchMedia('(prefers-reduced-motion: reduce)').matches)for(const row of added)row.animate([{opacity:0,transform:'translateY(7px)'},{opacity:1,transform:'translateY(0)'}],{duration:180,easing:'ease-out'});if(changed||nearBottom)nextPane.scrollTop=nextPane.scrollHeight;}
  lastNavigation=navigation;
+ lastLocation={...current};
 }
 function requestUnlock(link=null){
  if(lockscreen.stage!=='cover'||unlockingCover)return;
@@ -165,6 +181,27 @@ mountGestures($('#phone'),{
   }
  },
  shade:setShade,
+ goHome:({dy,settle,complete=false})=>{
+  const screen=$('#screen-layer'),status=$('#status-layer');
+  if(!settle){
+   const lift=Math.max(0,-dy),progress=Math.min(lift/360,1);
+   screen.style.transition='none';screen.style.transform=`translate3d(0,${-lift*.18}px,0) scale(${1-progress*.22})`;
+   screen.style.borderRadius=`${Math.round(progress*30)}px`;
+   screen.style.boxShadow=`0 ${12+progress*15}px ${progress*46}px #0005`;
+   screen.style.zIndex='3';
+   status.style.opacity=String(1-progress*.6);
+   return;
+  }
+  if(!complete){
+   screen.style.transition='transform 280ms cubic-bezier(.2,.85,.2,1.18), border-radius 280ms ease, box-shadow 280ms ease';
+   screen.style.transform='';screen.style.borderRadius='';screen.style.boxShadow='';screen.style.zIndex='';
+   status.style.transition='opacity 260ms ease';status.style.opacity='';
+   setTimeout(()=>{screen.style.transition='';status.style.transition='';},300);
+   return;
+  }
+  screen.style.transition='';screen.style.transform='';screen.style.borderRadius='';screen.style.boxShadow='';screen.style.zIndex='';status.style.opacity='';
+  swipeHomeReturn=Math.max(0,-dy);router.home();
+ },
  unlock:()=>{if(lockscreen.stage==='cover')requestUnlock();}
 });
 document.addEventListener('keydown',e=>{

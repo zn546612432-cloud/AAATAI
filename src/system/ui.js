@@ -10,7 +10,11 @@ export function icon(app,s,cls=''){
   if(asset){const {src,x,y,w,h,size}=asset;return `<span class="app-tile icon-rendered ${cls}"><img src="${src}" alt="" draggable="false" style="width:${size/w*100}%;height:${size/h*100}%;left:${-x/w*100}%;top:${-y/h*100}%"></span>`;}
   return `<span class="app-tile icon-designed ${cls}" style="--tone:${app.tone||'#37657e'}">${iconArt(app.id)}</span>`;
 }
-export const avatar=(name,variant='')=>`<span class="avatar ${variant}">${esc((name||'?').slice(0,1))}</span>`;
+export const avatar=(name,variant='')=>{
+ const value=String(name||'?');
+ const isImage=/^(?:\/|data:image\/(?:png|jpeg|webp);base64,|https:\/\/)/i.test(value);
+ return `<span class="avatar ${variant}">${isImage?`<img src="${esc(value)}" alt="" draggable="false">`:esc(value.slice(0,1))}</span>`;
+};
 export const section=(title,body)=>`<section class="section"><div class="section-heading">${title}</div>${body}</section>`;
 export const demo=()=>'<span class="demo-tag">DEMO</span>';
 export const empty=(title,desc='')=>`<div class="empty"><span class="empty-orbit">✦</span><strong>${title}</strong><p>${desc}</p></div>`;

@@ -6,11 +6,11 @@ import {notifications} from '../src/system/shell.js';
 import {initialState} from '../src/services/storage.js';
 
 function phoneHarness(state){
- const handlers=new Map(),out={pages:[],shades:[],unlocks:0};
+ const handlers=new Map(),out={pages:[],shades:[],homes:[],unlocks:0};
  const cover={style:{}};
  const root={
   clientHeight:800,
-  getBoundingClientRect:()=>({top:0}),
+  getBoundingClientRect:()=>({top:0,bottom:800}),
   querySelector:()=>cover,
   hasPointerCapture:()=>false,
   setPointerCapture:()=>{},
@@ -18,7 +18,7 @@ function phoneHarness(state){
   addEventListener(name,fn){handlers.set(name,fn);},
   dispatch(name,values){const e={timeStamp:0,cancelable:true,preventDefault(){e.prevented=true;},stopImmediatePropagation(){e.stopped=true;},...values};handlers.get(name)(e);return e;}
  };
- mountGestures(root,{state:()=>state,page:x=>out.pages.push(x),shade:x=>out.shades.push(x),unlock:()=>out.unlocks++});
+ mountGestures(root,{state:()=>state,page:x=>out.pages.push(x),shade:x=>out.shades.push(x),unlock:()=>out.unlocks++,goHome:x=>out.homes.push(x)});
  const finger=(x,y,id=1)=>({clientX:x,clientY:y,identifier:id});
  const touch=(name,x,y,t)=>root.dispatch(name,{timeStamp:t,target:{closest:()=>null},touches:name==='touchend'?[]:[finger(x,y)],changedTouches:[finger(x,y)]});
  return {root,touch,cover,out};
@@ -62,6 +62,24 @@ test('gesture listener does not intercept ordinary app scrolling',()=>{
  assert.equal(moving.prevented,undefined);
  touch('touchend',102,245,100);
  assert.equal(out.pages.length+out.shades.length+out.unlocks,0);
+});
+
+test('swiping up from the bottom of an app returns home while ordinary scrolling remains untouched',()=>{
+ const {touch,out}=phoneHarness({locked:false,home:false,shade:false,page:0});
+ touch('touchstart',190,776,0);
+ const moving=touch('touchmove',188,635,70);
+ assert.equal(moving.prevented,true);
+ assert.deepEqual(out.homes[0],{dy:-141,settle:false});
+ touch('touchend',185,582,105);
+ assert.equal(out.homes.at(-1).complete,true);
+});
+
+test('short bottom gesture springs back without navigating',()=>{
+ const {touch,out}=phoneHarness({locked:false,home:false,shade:false,page:0});
+ touch('touchstart',190,776,0);
+ touch('touchmove',190,753,45);
+ touch('touchend',190,735,70);
+ assert.equal(out.homes.at(-1).complete,false);
 });
 
 test('notification sheet has only the shared bottom home indicator, no duplicate top grip or Done button',()=>{

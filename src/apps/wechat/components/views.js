@@ -2,6 +2,7 @@ import {esc,demo} from '../../../system/ui.js';
 import {visibleMessages} from '../../../services/messaging/delivery.js';
 import {actors,isGroup} from '../../../editor/conversations/model.js';
 import {wxIcon} from './icons.js';
+import {resolveWeChatAvatar,wechatAvatars} from '../avatars.js';
 
 const tabs=[
   {id:'chats',label:'微信',icon:'chats',route:'/'},
@@ -29,10 +30,12 @@ function item(id,title,detail='',opts={}){
     (detail?'<span class="wx-entry-detail">'+esc(detail)+'</span>':'')+'</span>'+
     wxIcon('chevron',19)+'</button>';
 }
-function nav(active){
-  return '<nav class="wx-tabs" aria-label="微信底部导航">'+tabs.map(t=>
-    '<button type="button" class="wx-tab '+(active===t.id?'selected':'')+'" data-action="wx-tab" data-tab="'+t.id+'"'+(active===t.id?' aria-current="page"':'')+'>'+
-    wxIcon(active===t.id&&t.id==='contacts'?'contactsFilled':t.icon,27)+'<span>'+t.label+'</span></button>').join('')+'</nav>';
+function nav(active,s){
+  const unread=(s.content.conversations.wechat||[]).reduce((total,c)=>total+Math.max(0,Number(c.unread)||0),0);
+  return '<nav class="wx-tabs" data-view-key="wechat-tab-bar" aria-label="微信底部导航">'+tabs.map(t=>
+    '<button type="button" class="wx-tab '+(active===t.id?'selected':'')+'" data-action="wx-tab" data-tab="'+t.id+'"'+(active===t.id?' aria-current="page"':'')+'>'+ 
+    '<span class="wx-tab-icon">'+wxIcon(active===t.id&&['chats','contacts','me'].includes(t.id)?({chats:'chatsFilled',contacts:'contactsFilled',me:'meFilled'}[t.id]):t.icon,27)+
+    (t.id==='chats'&&unread?'<span class="wx-unread-badge" aria-label="'+unread+'条未读消息">'+(unread>99?'99+':unread)+'</span>':'')+'</span><span class="wx-tab-title">'+t.label+'</span></button>').join('')+'</nav>';
 }
 function header(title,right){
   return '<header class="wx-header"><h1>'+title+'</h1><div class="wx-head-actions">'+
@@ -42,8 +45,8 @@ const iconButton=(action,icon,label)=>'<button type="button" class="wx-head-butt
 function searchBox(placeholder='搜索'){
   return '<label class="wx-search"><span>'+wxIcon('search',18)+'</span><input type="search" data-wx-search aria-label="搜索" placeholder="'+placeholder+'" autocomplete="off"></label>';
 }
-function frame(tab,body){
-  return '<div class="wx-screen wx-'+tab+'" data-wx-tab="'+tab+'">'+body+nav(tab)+'</div>';
+function frame(tab,body,s){
+  return '<div class="wx-screen wx-'+tab+'" data-wx-tab="'+tab+'"><div class="wx-page-body" data-view-key="wechat-page">'+body+'</div>'+nav(tab,s)+'</div>';
 }
 function menu(){
   return '<div class="wx-action-menu" hidden>'+
@@ -59,12 +62,13 @@ function chats(s){
     const last=visibleMessages(c).at(-1);
     const preview=last?(last.kind==='image'?'[图片]':last.kind==='app_invitation'?'[邀请]':last.text||''):'暂无消息';
     const time=last?.time||'';
+    const unread=Math.max(0,Number(c.unread)||0);
     return '<button type="button" class="wx-chat-row" data-action="open-chat" data-id="'+esc(c.id)+'" data-wx-filter="'+esc(c.name+' '+preview)+'">'+
-      avatar(c.name,c.avatar,'wx-avatar-'+(i%5))+
+      '<span class="wx-chat-avatar-wrap">'+avatar(c.name,resolveWeChatAvatar(c.name,c.avatar),'wx-avatar-'+(i%5))+(unread?'<span class="wx-chat-unread">'+(unread>99?'99+':unread)+'</span>':'')+'</span>'+ 
       '<span class="wx-chat-main"><span class="wx-chat-top"><strong>'+esc(c.name)+'</strong><time>'+esc(time)+'</time></span>'+
       '<span class="wx-chat-preview">'+esc(preview)+(last?.demo?' '+demo():'')+'</span></span></button>';
   }).join('');
-  return frame('chats',title+'<div class="wx-search-region">'+searchBox()+'</div><div class="wx-scroll wx-chat-list">'+(rows||'<p class="wx-empty">暂无聊天，新的对话会显示在这里。</p>')+'</div>');
+  return frame('chats',title+'<div class="wx-search-region">'+searchBox()+'</div><div class="wx-scroll wx-chat-list">'+(rows||'<p class="wx-empty">暂无聊天，新的对话会显示在这里。</p>')+'</div>',s);
 }
 function contactList(s){
   const records=new Map();
@@ -82,7 +86,7 @@ function contactList(s){
   return [...grouped.entries()].sort(([a],[b])=>a.localeCompare(b)).map(([letter,group])=>
     '<section class="wx-contact-section" data-wx-section="'+esc(letter)+'"><h2>'+esc(letter)+'</h2>'+
     group.map(c=>'<button type="button" class="wx-contact-row" data-action="wx-open-contact" data-name="'+esc(c.name)+'" data-id="'+esc(c.id||'')+'" data-wx-filter="'+esc(c.name)+'">'+
-      avatar(c.name,c.avatar,'wx-avatar-contact')+'<strong>'+esc(c.name)+'</strong></button>').join('')+'</section>').join('');
+      avatar(c.name,resolveWeChatAvatar(c.name,c.avatar),'wx-avatar-contact')+'<strong>'+esc(c.name)+'</strong></button>').join('')+'</section>').join('');
 }
 function contacts(s){
   const top=header('通讯录',iconButton('wx-open-entry','personAdd','添加联系人'));
@@ -92,19 +96,19 @@ function contacts(s){
     item('official','公众号')+item('services','服务号')+item('enterprise','企业微信联系人')+'</div>';
   const index='<aside class="wx-alpha-index" aria-label="字母索引">'+
     '☆ABCDEFGHIJKLMN OPQRSTUVWXYZ#'.replace(/ /g,'').split('').map(x=>'<button type="button" data-action="wx-index" data-letter="'+x+'">'+x+'</button>').join('')+'</aside>';
-  return frame('contacts',top+'<div class="wx-search-region">'+searchBox()+'</div><div class="wx-scroll wx-contacts-scroll">'+shortcuts+contactList(s)+'</div>'+index);
+  return frame('contacts',top+'<div class="wx-search-region">'+searchBox()+'</div><div class="wx-scroll wx-contacts-scroll">'+shortcuts+contactList(s)+'</div>'+index,s);
 }
-function discover(){
+function discover(s){
   const groups=[
     [item('moments','朋友圈')],
     [item('live','直播')],
     [item('scan','扫一扫'),item('mini','小程序')]
   ];
-  return frame('discover',header('发现')+'<div class="wx-scroll wx-settings-scroll">'+groups.map(x=>'<section class="wx-settings-group">'+x.join('')+'</section>').join('')+'</div>');
+  return frame('discover',header('发现')+'<div class="wx-scroll wx-settings-scroll">'+groups.map(x=>'<section class="wx-settings-group">'+x.join('')+'</section>').join('')+'</div>',s);
 }
-function me(){
+function me(s){
   const profile='<button type="button" class="wx-profile" data-action="wx-open-entry" data-label="个人信息">'+
-    '<img class="wx-profile-avatar" src="/apps/wechat/ximeng-avatar.svg" alt="熙蒙的微信头像">'+
+    '<img class="wx-profile-avatar" src="'+wechatAvatars['熙蒙']+'" alt="熙蒙的微信头像">'+
     '<span class="wx-profile-copy"><strong>熙蒙</strong><span>微信号：未设置</span><small><span class="wx-state">＋ 状态</span></small></span>'+
     '<span class="wx-profile-qr">'+wxIcon('qr',20)+wxIcon('chevron',20)+'</span></button>';
   const groups=[
@@ -112,9 +116,10 @@ function me(){
     [item('favorites','收藏'),item('photos','朋友圈'),item('works','作品'),item('shop','小店与卡包'),item('stickers','表情')],
     [item('settings','设置')]
   ];
-  return frame('me','<div class="wx-scroll wx-settings-scroll">'+profile+groups.map(x=>'<section class="wx-settings-group">'+x.join('')+'</section>').join('')+'</div>');
+  return frame('me','<div class="wx-scroll wx-settings-scroll">'+profile+groups.map(x=>'<section class="wx-settings-group">'+x.join('')+'</section>').join('')+'</div>',s);
 }
 export function renderWeChatHome(s,route='/'){
   const selected=tabForRoute(route);
-  return selected==='contacts'?contacts(s):selected==='discover'?discover():selected==='me'?me():chats(s);
+  return selected==='contacts'?contacts(s):selected==='discover'?discover(s):selected==='me'?me(s):chats(s);
 }
+
