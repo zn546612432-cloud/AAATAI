@@ -9,8 +9,8 @@ const tabs=[
   {id:'discover',label:'发现',icon:'compass',route:'/discover'},
   {id:'me',label:'我',icon:'me',route:'/me'}
 ];
-const icons={newFriends:'personAdd',onlyChats:'bubbles',groups:'group',tags:'tag',official:'book',services:'globe',moments:'aperture',live:'live',scan:'scan',mini:'mini',service:'service',favorites:'box',photos:'photo',works:'work',shop:'shop',stickers:'smile',settings:'settings'};
-const colors={newFriends:'#fa9a37',onlyChats:'#f7a03b',groups:'#0abc67',tags:'#168cf1',official:'#158ef5',services:'#15a8f5',moments:'#23ba8a',live:'#ff6757',scan:'#278cf3',mini:'#7067ff',service:'#06c777',favorites:'#5799ff',photos:'#299af7',works:'#10b4fb',shop:'#ff6855',stickers:'#ffb900',settings:'#258ef4'};
+const icons={newFriends:'personAdd',onlyChats:'bubbles',groups:'group',tags:'tag',official:'book',services:'globe',enterprise:'bubbles',moments:'aperture',live:'live',scan:'scan',mini:'mini',service:'service',favorites:'box',photos:'photo',works:'work',shop:'shop',stickers:'smile',settings:'settings'};
+const colors={newFriends:'#fa9a37',onlyChats:'#f7a03b',groups:'#0abc67',tags:'#168cf1',official:'#158ef5',services:'#15a8f5',enterprise:'#2c88d8',moments:'#23ba8a',live:'#ff6757',scan:'#278cf3',mini:'#7067ff',service:'#06c777',favorites:'#5799ff',photos:'#299af7',works:'#10b4fb',shop:'#ff6855',stickers:'#ffb900',settings:'#258ef4'};
 const letters={'阿':'A','胡':'H','熙':'X','小':'X','仔':'Z'};
 export const routeForTab=id=>tabs.find(t=>t.id===id)?.route||'/';
 export const tabForRoute=route=>tabs.find(t=>t.route===route)?.id||'chats';
@@ -32,7 +32,7 @@ function item(id,title,detail='',opts={}){
 function nav(active){
   return '<nav class="wx-tabs" aria-label="微信底部导航">'+tabs.map(t=>
     '<button type="button" class="wx-tab '+(active===t.id?'selected':'')+'" data-action="wx-tab" data-tab="'+t.id+'"'+(active===t.id?' aria-current="page"':'')+'>'+
-    wxIcon(t.icon,27)+'<span>'+t.label+'</span></button>').join('')+'</nav>';
+    wxIcon(active===t.id&&t.id==='contacts'?'contactsFilled':t.icon,27)+'<span>'+t.label+'</span></button>').join('')+'</nav>';
 }
 function header(title,right){
   return '<header class="wx-header"><h1>'+title+'</h1><div class="wx-head-actions">'+
@@ -89,7 +89,7 @@ function contacts(s){
   const shortcuts='<div class="wx-contact-shortcuts">'+
     item('newFriends','新的朋友')+item('onlyChats','仅聊天的朋友')+
     item('groups','群聊','',{action:'wx-open-groups'})+item('tags','标签')+
-    item('official','公众号')+item('services','服务号')+'</div>';
+    item('official','公众号')+item('services','服务号')+item('enterprise','企业微信联系人')+'</div>';
   const index='<aside class="wx-alpha-index" aria-label="字母索引">'+
     '☆ABCDEFGHIJKLMN OPQRSTUVWXYZ#'.replace(/ /g,'').split('').map(x=>'<button type="button" data-action="wx-index" data-letter="'+x+'">'+x+'</button>').join('')+'</aside>';
   return frame('contacts',top+'<div class="wx-search-region">'+searchBox()+'</div><div class="wx-scroll wx-contacts-scroll">'+shortcuts+contactList(s)+'</div>'+index);

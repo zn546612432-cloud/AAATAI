@@ -2,6 +2,7 @@
 // Every symbol is an SVG element, not a cropped screenshot, so it stays sharp on Retina displays.
 const paths={
   chats:'<path d="M20.7 11.7c0 4.5-4.1 8-9.2 8-1.4 0-2.8-.3-4-.8L3.6 20l1-3.7C3.6 15 3 13.4 3 11.7c0-4.5 4.1-8 9.2-8s8.5 3.5 8.5 8Z"/>',
+  contactsFilled:'<circle cx="10" cy="6.5" r="4.2" fill="currentColor" stroke="none"/><path d="M2.3 20c.5-5 3-7.2 7.7-7.2s7.2 2.2 7.7 7.2H2.3Z" fill="currentColor" stroke="none"/><path d="M17.8 13.4h4.6m-4.6 3.1h4.6m-4.6 3.1h4.6" stroke="currentColor" stroke-width="1.6"/>',
   contacts:'<path d="M15 14.4c3.3-1.5 4.3-3.4 4.3-6.2 0-4.4-2.6-7-6.6-7-3.9 0-6.5 2.6-6.5 7 0 2.8 1 4.7 4.3 6.2C6.8 15.6 2 18 2 21h15.2M18 16h4m-4 3h4"/>',
   compass:'<circle cx="12" cy="12" r="9.4"/><path d="m15.8 8.2-2.4 5.2-5.2 2.4 2.4-5.2 5.2-2.4Z"/>',
   me:'<path d="M16 8.1a4 4 0 1 1-8 0 4 4 0 0 1 8 0ZM3.2 21c.3-4.3 3.4-6.4 8.8-6.4s8.5 2.1 8.8 6.4H3.2Z"/>',
