@@ -74,11 +74,11 @@ textarea{min-height:90px;resize:vertical;line-height:1.55}
 .lock-notification strong,.shade-notification strong{font-size:12px;font-weight:450}
 .notification-dot{width:34px;height:34px;border-radius:10px;background:linear-gradient(120deg,#85bbce,#375e70);flex-shrink:0}
 .unlock-hint{margin:22px 0 4px;font-size:12px;color:#e2edf4;min-height:40px}
-.shade{height:100%;padding:20px 19px;background:linear-gradient(#263447dd,#111a28f0);color:white}
+.shade{height:100%;padding:20px 19px;color:white}
 .shade-grip{width:34px;height:4px;border-radius:5px;background:#fff5;margin:0 auto 20px}
 .shade-header{display:flex;justify-content:space-between}
 .shade h2{font-size:30px;font-weight:600;margin:22px 0}
-.shade-notification{background:#fff2}
+.shade-notification{background:rgba(255,255,255,.17)}
 .text-button{color:#69a5c2;font-size:12px;padding:8px}
 .app-view{height:100%;background:#f6f8fa;color:var(--ink);display:flex;flex-direction:column;animation:enter .25s ease}
 .app-nav{height:67px;flex-shrink:0;display:flex;justify-content:space-between;align-items:center;padding:2px 17px;border-bottom:1px solid #e4ebf0;background:#f8fafbed}
@@ -340,11 +340,11 @@ to{opacity:1;transform:none}
 .passcode-key{display:flex;flex-direction:column;justify-content:center;align-items:center;width:64px;height:64px;-webkit-backdrop-filter:blur(14px)}
 .passcode-key:active{background:#e8f6ff5c}
 .passcode-dots{margin-bottom:28px}
-.lock-error .passcode-dots{animation:passcode-shake .35s ease}
+.lock-error .passcode-dots{animation:passcode-shake .5s cubic-bezier(.36,.07,.19,.97) both}
 .lock-unlocking{opacity:0;transform:translateY(-60px);transition-delay:.08s}
 .unlock-enter{animation:unlock-home .5s cubic-bezier(.18,.75,.26,1) both}
 @keyframes cover-rise{from{opacity:0;transform:translateY(45px)}to{opacity:1;transform:none}}
-@keyframes passcode-shake{20%,60%{transform:translateX(-10px)}40%,80%{transform:translateX(10px)}}
+@keyframes passcode-shake{0%,100%{transform:translateX(0)}12%{transform:translateX(-17px)}27%{transform:translateX(15px)}42%{transform:translateX(-12px)}57%{transform:translateX(9px)}72%{transform:translateX(-5px)}87%{transform:translateX(2px)}}
 @keyframes unlock-home{from{opacity:0;transform:scale(1.13)}to{opacity:1;transform:scale(1)}}
 @media(max-height:760px){.reminder-widget{height:155px;margin-bottom:20px}.lock-screen{padding-top:12px}.lock-passcode .lock-clock{font-size:38px}.passcode-panel{padding-bottom:4px}.passcode-key{width:54px;height:54px}.passcode-grid{gap:8px 18px}.passcode-dots{margin-bottom:20px}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important}}
