@@ -1,6 +1,7 @@
 import {esc} from '../../../../system/ui.js';
 import {phIcon} from '../../components/icons.js';
-import {allPhotos,photoArtwork,sampleCount} from '../../data/demo.js';
+import {allPhotos,photoArtwork} from '../../data/demo.js';
+import {renderSelectionControls} from '../selection/index.js';
 
 export function renderPhotoTile(photo,{selectMode=false,selected=false}={}){
  return `<button class="ph-photo-tile ${selectMode?'is-selectable':''} ${selected?'is-selected':''}" type="button" data-action="${selectMode?'photos-select-photo':'photos-open'}" data-id="${esc(photo.id)}" aria-label="${esc(photo.title||'照片')}" aria-pressed="${selected?'true':'false'}">
@@ -9,7 +10,7 @@ export function renderPhotoTile(photo,{selectMode=false,selected=false}={}){
  </button>`;
 }
 export function renderLibrary(saved=[],{selectMode=false,selected=new Set(),filter='all'}={}){
- const total=sampleCount+saved.length;
+ const total=saved.length;
  const all=allPhotos(saved).filter(p=>filter==='favorites'?p.favorite:filter==='videos'?p.kind==='video'||p.kind==='film':true);
  return `<section class="ph-view ph-library" data-view-key="photos-library" aria-label="图库">
    <div class="ph-library-scroll" data-key="photos-library-scroll">
@@ -29,8 +30,8 @@ export function renderLibrary(saved=[],{selectMode=false,selected=new Set(),filt
     <div class="ph-library-grid" data-key="photos-grid">
      ${all.map(p=>renderPhotoTile(p,{selectMode,selected:selected.has(p.id)})).join('')}
     </div>
-    ${!all.length?'<p class="ph-no-results">还没有符合条件的照片</p>':''}
+    ${!all.length?`<div class="ph-library-empty">${phIcon('library',39)}<strong>${filter==='all'?'暂无照片':'没有符合条件的照片'}</strong><span>${filter==='all'?'你导入的照片将显示在这里':'可以尝试其他筛选条件'}</span>${filter==='all'&&!selectMode?'<button type="button" data-action="photos-import">导入照片</button>':''}</div>`:''}
    </div>
-   ${selectMode?`<div class="ph-selection-count">已选择 ${selected.size} 项 <button data-action="photos-clear-selection">取消选择</button></div>`:''}
+   ${selectMode?renderSelectionControls():''}
   </section>`;
 }

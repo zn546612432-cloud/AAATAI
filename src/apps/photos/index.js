@@ -27,7 +27,7 @@ export function render({store},loc){
   <div class="ph-first-level">
    <div class="ph-main-view ${collections?'':'is-current'}" aria-hidden="${collections}">${renderLibrary(saved,{selectMode:selection.enabled,selected:selection.selected,filter:selection.filter})}</div>
    <div class="ph-main-view ${collections?'is-current':''}" aria-hidden="${!collections}">${renderCollections(saved)}</div>
-  </div>${bottomBar(route)}
+  </div>${selection.enabled&&!collections?'':bottomBar(route)}
  </main>`;
 }
 export function handle(action,t,ctx){

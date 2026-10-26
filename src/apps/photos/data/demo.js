@@ -8,21 +8,11 @@ export const people=[
  {id:'xiaoxin',name:'小辛',image:A+'xiaoxin.jpeg'},
  {id:'zaizai',name:'仔仔',image:A+'zaizai.jpeg'}
 ];
-const kinds=[
- 'chat','chat','chat','list','list','chat','chat','list','settings','settings',
- 'settings','chat','terminal','video','blueprint','chat','settings','nature','film','list',
- 'chat','flower','sky','portrait','poster','portrait','chat','chat','art','message',
- 'settings','video','nature','terminal','portrait','list','chat','flower','settings','film',
- 'art','nature','chat','portrait','blueprint','poster','portrait','video','list','chat',
- 'portrait','settings','nature','film','chat','terminal','portrait','art','settings','flower'
-];
-export const samplePhotos=kinds.map((kind,i)=>({
- id:`sample-${String(i+1).padStart(3,'0')}`,title:`示例照片 ${i+1}`,kind,fixture:true,
- image:kind==='portrait'?people[[3,0,4,1,2,5][i%6]].image:null,
- tone:i%7
-}));
-export const sampleCount=6940; // Screenshot's display count; visual fixture only.
-export function allPhotos(saved=[]){return [...saved.map(p=>({...p,kind:'uploaded',image:p.src})),...samplePhotos];}
+// Screenshots supplied for UI reference must never become the player's photo library.
+// Only user-imported or story-authored images appear as photos.
+export const samplePhotos=[];
+export const sampleCount=0;
+export function allPhotos(saved=[]){return saved.map(p=>({...p,kind:'uploaded',image:p.src}));}
 export function findPhoto(saved=[],id){return allPhotos(saved).find(p=>p.id===id);}
 export function photoArtwork(photo){
  if(photo.image)return `<img src="${esc(photo.image)}" alt="" loading="lazy" draggable="false">`;
