@@ -30,6 +30,9 @@ test('native WeChat conversation has names, portraits, composer and per-message 
  for(const item of ['wx-message-sender','胡枫','小辛','wx-message-row mine','wx-composer','wx-speak-draft','wx-message-options','哥，我回来了'])assert.ok(html.includes(item),item);
  assert.match(html,/avatars\/originals\/ximeng\.jpeg/);
  assert.match(html,/avatars\/originals\/hufeng\.jpeg/);
+ assert.match(renderWeChatChat(s,'wang'),/avatars\/originals\/xiwang\.jpeg/);
+ assert.equal((html.match(/loading="eager"/g)||[]).length,3);
+ assert.doesNotMatch(html,/loading="lazy"/);
  assert.doesNotMatch(html,/DEMO|chat-person|聊天记录/);
  assert.equal((html.match(/class="message-row wx-message-row/g)||[]).length,3);
  const css=readFileSync(new URL('../src/apps/wechat/styles.css',import.meta.url),'utf8');
