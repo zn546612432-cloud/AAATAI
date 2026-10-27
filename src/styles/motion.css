@@ -7,9 +7,10 @@
 .home-top{padding:0 8px;margin-top:0}
 /* The pager spans the full screen width and each page re-adds the gutter as padding: pages slide edge to edge
    while the page next to the current one stays completely off-screen at rest. */
-.home-pager{flex:1;min-height:0;position:relative;overflow:visible;margin:0 calc(var(--home-gutter) * -1)}
+.home-pager{flex:1;min-height:0;position:relative;overflow:hidden;margin:0 calc(var(--home-gutter) * -1)}
 .home-track{height:100%;display:flex;transform:translate3d(0,0,0);transition:transform .4s cubic-bezier(.22,.9,.3,1);will-change:transform}
-.home-page{flex:0 0 100%;min-width:0;padding:0 calc(var(--home-gutter) + 8px);display:flex;flex-direction:column}
+.home-page{flex:0 0 100%;min-width:0;padding:0 calc(var(--home-gutter) + 8px) 8px;display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden;scrollbar-width:none}
+.home-page::-webkit-scrollbar{display:none}
 .home-dock,.page-dots{position:relative;z-index:2;flex-shrink:0}
 .page-dots i{transition:width .3s cubic-bezier(.22,.9,.3,1),background-color .3s}
 .home-dock{margin-bottom:0}

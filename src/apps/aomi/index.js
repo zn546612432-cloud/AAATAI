@@ -1,4 +1,11 @@
-import {btn,demo} from '../../system/ui.js';
-export const manifest={id:'aomi',name:'澳觅',glyph:'澳',tone:'#e6bb66',defaultRoute:'/',kicker:'LOCAL LIFE'};
-export const render=()=>`<div class="page-pad"><div class="aomi-hero"><span>澳</span><h1>今晚食啲咩？</h1><p>澳门的夜，还有很多选择。</p></div>${btn('aomi-browse','看看附近','button-primary wide')}<div class="centered">${demo()}</div></div>`;
-export const handle=(a,t,c)=>{if(a==='aomi-browse')c.router.open({appId:'maps',route:'/'});};
+import {btn,esc} from '../../system/ui.js';
+import {aomiHome} from './features/home/index.js';
+import {aomiOrders} from './features/orders/index.js';
+import {aomiProfile} from './features/profile/index.js';
+import {aomiLogin} from './features/login/index.js';
+export const manifest={id:'aomi',name:'澳觅',glyph:'澳',tone:'#ff315b',defaultRoute:'/',kicker:'AOMI'};
+let section='home',login=false,phone='';
+const tabs=()=>`<nav class="aomi-tabs">${[['home','tab-delivery','外卖'],['orders','tab-orders','订单'],['profile','tab-me','我']].map(([id,icon,label])=>btn('aomi-tab',`<img src="/assets/aomi-source/${icon}.png" alt=""><span>${label}</span>`,section===id?'active':'',`data-tab="${id}"`)).join('')}</nav>`;
+export function render(){return `<div class="aomi-page">${login?aomiLogin(phone):`${section==='orders'?aomiOrders():section==='profile'?aomiProfile():aomiHome()}${tabs()}`}</div>`;}
+export function handle(a,t,c){if(a==='aomi-tab'){section=t.dataset.tab;c.refresh();}if(a==='aomi-login'){login=true;c.refresh();}if(a==='aomi-close'){login=false;c.refresh();}if(a==='aomi-code')c.toast('请输入正确的手机号');if(a==='aomi-search')c.toast('附近暂无商户');if(a==='aomi-retry')c.toast('当前位置附近没有商户');if(a==='aomi-chat')c.toast('客服暂不可用');if(a==='aomi-login-submit')c.toast('请输入正确的手机号');}
+export function input(el){if(el.name==='aomi-phone')phone=el.value;}

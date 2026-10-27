@@ -14,11 +14,14 @@ import {dragOffset,nearestPage,pageTarget} from './system/pager.js';
 import {isNativeTabSwitch} from './system/navigation.js';
 import {errorHaptic} from './system/haptics.js';
 import {mountWeatherSwipe} from './apps/weather/replica.js';
+import {createTaskSwitcher} from './system/task-switcher.js';
+import {tickAlarms} from './apps/clock/features/alarms/index.js';
 
 const store=new PhoneStore(),router=new PhoneRouter(store,registry),lockscreen=new LockScreen();
 mountShell();
 let shade=false,toastTimer,assetHandler=null,entryAnimation=false,lastNavigation=null,lastLocation=null,quietEditorUpdate=false,draggingHome=false,pagerBase=null,unlockingCover=false,swipeHomeReturn=null;
 const delivery=new MessageDelivery(store);
+const tasks=createTaskSwitcher({router,registry});
 // Opening the display always requires a new unlock, without removing saved content.
 if(store.get().unlocked)store.update(s=>{s.unlocked=false;});
 const $=q=>document.querySelector(q);
@@ -66,6 +69,7 @@ function render(){
  else if(current.appId==='home')body=home(s);
  else{const app=registry.get(current.appId);if(current.appId==='mirage'&&lastLocation?.appId!=='mirage')app?.onEnter?.();body=app?appFrame(s,app,app.render(ctx(),current)):'<div class="empty">App 不可用</div>';}
  patchHTML(screen,body);
+ if(s.unlocked&&current.appId!=='home')tasks.snapshot(current);
  if(navigation===lastNavigation&&actorsOpen&&$('.editor-actors'))$('.editor-actors').open=true;
  if(changed&&s.unlocked&&!nativeTabSwitch)animateNavigation(previous);
  if(nativeTabSwitch){const pane=screen.querySelector('.wx-scroll');if(pane)pane.scrollTop=0;}
@@ -123,7 +127,7 @@ function enterDigit(key){
 store.subscribe(()=>{if(!quietEditorUpdate)render();});render();
 mountInteractions($('#root'),ctx());
 mountWeatherSwipe($('#root'),ctx);
-setInterval(()=>{try{const delivered=delivery.tick(Date.now(),!document.hidden);if(delivered.length&&store.get().unlocked){const incoming=delivered.find(m=>m.from!=='me'&&!isConversationOpen(store.get(),m.channel,m.conversationId));if(incoming)toast(`${incoming.title}：${incoming.body}`);}}catch(err){toast(err.message||'消息未能保存');}},500);
+setInterval(()=>{try{const delivered=delivery.tick(Date.now(),!document.hidden);if(delivered.length&&store.get().unlocked){const incoming=delivered.find(m=>m.from!=='me'&&!isConversationOpen(store.get(),m.channel,m.conversationId));if(incoming)toast(`${incoming.title}：${incoming.body}`);}const alarms=tickAlarms(store);if(alarms.length&&store.get().unlocked)toast(`闹钟：${alarms[0].label||'闹钟'}`);}catch(err){toast(err.message||'消息未能保存');}},500);
 $('#root').addEventListener('click',async e=>{
   const openedMessageMenu=$('#screen-layer .wx-message-menu:not([hidden])');
   if(openedMessageMenu&&!e.target.closest('.wx-message-menu,.wx-bubble'))openedMessageMenu.hidden=true;
@@ -131,6 +135,7 @@ $('#root').addEventListener('click',async e=>{
   const target=e.target.closest('[data-action]');if(!target)return;
   const action=target.dataset.action;
   try{
+    if(action.startsWith('tasks-')){tasks.action(action,target.dataset.id);return;}
     if(action==='home'&&shade){setShade({progress:0});return;}
     if(!store.get().unlocked){
       if(action==='close-shade'){setShade({progress:0});return;}
@@ -139,7 +144,7 @@ $('#root').addEventListener('click',async e=>{
       if(action==='notification'){const n=store.get().notifications.find(x=>x.id===target.dataset.id);requestUnlock(n?.link||null);return;}
       return;
     }
-    if(action==='home'){router.home();return;}
+    if(action==='home'){if(tasks.visible)tasks.hide();else if(store.get().nav.current.appId==='home')tasks.show(store.get().nav.current);else router.home();return;}
     if(action==='back'){router.back();return;}
     if(action==='open-app'){const id=target.dataset.app,m=registry.get(id)?.manifest;if(!m||m.unlockDay&&store.get().day<m.unlockDay)return toast('此 App 尚未开放');router.open({appId:id,route:m.defaultRoute||'/'});return;}
     if(action==='home-reminder-toggle'){toggleReminder(store,target.dataset.id);return;}
@@ -228,8 +233,10 @@ mountGestures($('#phone'),{
    return;
   }
   screen.style.transition='';screen.style.transform='';screen.style.borderRadius='';screen.style.boxShadow='';screen.style.zIndex='';status.style.opacity='';
+  if(dy<-195){tasks.show(store.get().nav.current);return;}
   swipeHomeReturn=Math.max(0,-dy);router.home();
  },
+ switcher:()=>tasks.show(store.get().nav.current),
  unlock:()=>{if(lockscreen.stage==='cover')requestUnlock();}
 });
 document.addEventListener('keydown',e=>{

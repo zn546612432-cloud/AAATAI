@@ -1,4 +1,15 @@
-import {btn,card,demo,esc} from '../../system/ui.js';
+import {settingsHome} from './features/home/index.js';
+import {settingsDetail} from './features/details/index.js';
 export const manifest={id:'settings',name:'设置',icon:6,defaultRoute:'/',kicker:'SYSTEM'};
-export function render({store}){const s=store.get();return `<div class="page-pad"><div class="large-title">设置</div>${card('<div class="contact-row"><span class="avatar owner">蒙</span><div><strong>熙蒙的手机</strong><small>私人设备 · 本地预览</small></div></div>')}<div class="surface-list">${btn('settings-editor','<span class="setting-icon">✎</span><span class="list-copy"><strong>开发者模式</strong><small>编辑短信、电话、联系人、图片及日期</small></span><span>›</span>','list-row')}${btn('settings-lock','<span class="setting-icon">◇</span><span class="list-copy"><strong>锁定手机</strong><small>检查锁屏与通知</small></span><span>›</span>','list-row')}${btn('settings-export','<span class="setting-icon">⇧</span><span class="list-copy"><strong>导出本机备份</strong><small>包含对话、棋局和实际事件</small></span><span>›</span>','list-row')}</div><div class="section-heading">服务状态</div>${card('<div class="line-between"><strong>Supabase</strong><small>未连接</small></div><div class="line-between"><strong>MiniMax</strong><small>未连接</small></div>')}<p class="fine-print">${demo()} · 开发者入口仅用于本机原型，不是正式账户权限。</p></div>`;}
-export function handle(a,t,c){if(a==='settings-editor')c.router.open({appId:'editor',route:'/'});if(a==='settings-lock')c.store.update(s=>{s.unlocked=false;s.nav.stack=[];s.nav.current={appId:'home',route:'/',params:{}};});if(a==='settings-export')c.download();}
+export function render({store},loc){const s=store.get();return loc.route==='/'?settingsHome(s):settingsDetail(s,loc.route.slice(1));}
+export function handle(a,t,c){
+ if(a==='settings-back')c.router.back();
+ if(a==='settings-open'){
+  const route=t.dataset.route;
+  if(route==='editor')return c.router.open({appId:'editor',route:'/'});
+  if(route==='lock')return c.store.update(s=>{s.unlocked=false;s.nav.stack=[];s.nav.current={appId:'home',route:'/',params:{}};});
+  if(route==='export')return c.download();
+  c.router.open({appId:'settings',route:'/'+route});
+ }
+ if(a==='settings-toggle')c.store.update(s=>{const key=t.dataset.key;s[key]=!(s[key]??(['wifi','bluetooth','allowNotifications','haptics'].includes(key)));});
+}

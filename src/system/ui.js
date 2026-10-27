@@ -5,6 +5,7 @@ export const timeLabel=s=>`${dateLabel(s)} · ${s.clock}`;
 import {iconArt} from './icon-art.js';
 import {iconAssets} from './icon-assets.js';
 export function icon(app,s,cls=''){
+  if(app.id==='aomi')return `<span class="app-tile icon-override ${cls}"><img src="/assets/aomi-icon.png" alt="" draggable="false"></span>`;
   const override=s.iconOverrides?.[app.id],asset=iconAssets[app.id];
   if(override)return `<span class="app-tile icon-override ${cls}"><img src="${esc(override)}" alt="" draggable="false"></span>`;
   if(asset){const {src,x,y,w,h,size}=asset;return `<span class="app-tile icon-rendered ${cls}"><img src="${src}" alt="" draggable="false" style="width:${size/w*100}%;height:${size/h*100}%;left:${-x/w*100}%;top:${-y/h*100}%"></span>`;}

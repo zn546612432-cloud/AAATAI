@@ -1,0 +1,2 @@
+import {btn} from '../../../../system/ui.js';
+export const aomiHome=()=>`<div class="aomi-location">● 品湖居⌄ <span>消息 ◌</span></div><div class="aomi-body"><label class="aomi-search">⌕ <input placeholder="搜索店名或菜品名"><button type="button" data-action="aomi-search">搜索</button></label><div class="aomi-empty"><img src="/assets/aomi-icon.png" alt="澳觅"><p>當前位置附近沒有商戶<br>正在努力開拓</p>${btn('aomi-retry','刷新重試')}</div></div>`;

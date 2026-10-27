@@ -1,13 +1,13 @@
 import {releaseVelocity} from './pager.js';
 
 const DEAD_ZONE=9;
-const BLOCKED='input,textarea,select,[data-drag-message],.composer,.passcode-panel';
+const BLOCKED='input,textarea,select,[data-drag-message],.composer,.passcode-panel,#task-layer';
 export function classifyGesture({dx,dy,home,locked,shade,top,bottom}){
  if(Math.max(Math.abs(dx),Math.abs(dy))<DEAD_ZONE)return null;
  if(shade&&Math.abs(dy)>Math.abs(dx))return 'shade';
  if(locked&&top&&dy>0&&Math.abs(dy)>Math.abs(dx))return 'shade';
  if(locked)return dy<0&&Math.abs(dy)>Math.abs(dx)?'unlock':null;
- if(!home&&bottom&&dy<0&&Math.abs(dy)>Math.abs(dx)*1.15)return 'home';
+ if(bottom&&dy<0&&Math.abs(dy)>Math.abs(dx)*1.15)return home?'switcher':'home';
  if(home&&Math.abs(dx)>Math.abs(dy)*1.15)return 'pages';
  if((home||top)&&dy>0&&Math.abs(dy)>Math.abs(dx))return 'shade';
  return null;
@@ -15,7 +15,7 @@ export function classifyGesture({dx,dy,home,locked,shade,top,bottom}){
 
 // Safari and embedded iPhone browsers can cancel PointerEvents when scrolling begins.
 // Prefer TouchEvents for fingers, retaining PointerEvents for a mouse or pen.
-export function mountGestures(root,{state,page,shade,unlock,goHome=()=>{}}){
+export function mountGestures(root,{state,page,shade,unlock,goHome=()=>{},switcher=()=>{}}){
  let drag=null,suppressClickUntil=0;
  const start=(x,y,id,source,target,time)=>{
   if(drag||target?.closest?.(BLOCKED))return;
@@ -44,6 +44,7 @@ export function mountGestures(root,{state,page,shade,unlock,goHome=()=>{}}){
   if(g.mode==='pages')page({dx,velocity:cancel?0:releaseVelocity(g.samples,time),index:g.page,cancel,settle:true});
   if(g.mode==='shade')shade({progress:cancel?Number(g.shade):g.shade?Number(dy>-70):Number(dy>70),settle:true});
   if(g.mode==='home')goHome({dy,settle:true,complete:!cancel&&dy<-95,cancel});
+  if(g.mode==='switcher'&&!cancel&&dy<-65)switcher();
   if(g.mode==='unlock'){
    if(!cancel&&dy<-60)unlock();
    else{const cover=root.querySelector('.lock-screen');if(cover){cover.style.transform='';cover.style.opacity='';}}
