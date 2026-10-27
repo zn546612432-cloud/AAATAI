@@ -1,3 +1,6 @@
+@import url('../apps/phone/replica.css');
+@import url('../apps/messages/replica.css');
+@import url('../apps/weather/replica.css');
 @import url('./chess.css');
 @import url('./mirage.css');
 :root{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","PingFang SC","Noto Sans CJK SC",sans-serif;color:#f4f7fb;background:#080d16;font-synthesis:none;--ink:#172638;--muted:#7c8a9b;--accent:#a4c8db;--line:#e7ecf1;--soft:#f5f7f9}
@@ -290,6 +293,17 @@ to{opacity:1;transform:none}
 .icon-designed:before{content:"";position:absolute;inset:3px;border-radius:13px;border:1px solid #ffffff2b;pointer-events:none}
 .icon-designed svg{height:35px;width:35px;color:#edfaff;filter:drop-shadow(0 1px 3px #02293d) drop-shadow(0 0 4px #b6f3ff8c)}
 .home-dock .icon-designed svg{width:32px;height:32px}
+
+/* The motion shell spans the entire phone, including the status bar. Keep native
+   app headers below the Dynamic Island just like the other full-screen apps. */
+#screen-layer .app-view.app-weather,
+#screen-layer .app-view.app-phone,
+#screen-layer .app-view.app-messages{padding-top:calc(60px + env(safe-area-inset-top,0px))}
+
+/* Continue the app canvas behind the global status bar for seamless iOS chrome. */
+#phone:has(.app-weather) #status-layer{background:#101323}
+#phone:has(.app-phone) #status-layer,
+#phone:has(.app-messages) #status-layer{background:#fff}
 .passcode-panel{width:100%;padding:0 20px 8px;animation:passcode-rise .34s cubic-bezier(.2,.8,.2,1)}
 .passcode-panel h2{font-size:17px;font-weight:500;margin:0 0 15px}
 .passcode-dots{display:flex;justify-content:center;gap:18px;margin-bottom:28px}
@@ -408,4 +422,15 @@ to{opacity:1;transform:none}
 .new-conversation textarea{font-size:12px;min-height:76px;line-height:1.7}
 .new-conversation form{margin-top:10px}
 .new-conversation input,.new-conversation select{background:#fff}
+.phone-editor-item{border:1px solid #dce5eb;background:#fff;border-radius:15px;margin:9px 0;overflow:hidden}
+.phone-editor-item>summary{display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer;list-style:none;padding:16px 14px;font-size:14px;color:#233b4a}
+.phone-editor-item>summary::-webkit-details-marker{display:none}
+.phone-editor-item>summary small{font-size:11px;color:#8b9da8;text-align:right;font-weight:450}
+.phone-editor-item form{border-top:1px solid #e7edf1;padding:7px 14px 16px}
+.phone-editor-actions{display:flex;align-items:center;gap:15px;margin-top:15px}
+.phone-editor-actions .button-primary{flex:1}
+.phone-editor-actions .danger{font-size:13px;color:#bd3c49;padding:12px 10px}
+.editor-phone .phone-checkbox{display:flex;align-items:center;gap:9px;margin:14px 0;color:#576d7b}
+.editor-phone .phone-checkbox input{width:18px;height:18px;flex:none;accent-color:#4e89da}
+.editor-phone .phone-checkbox input:focus-visible{outline-offset:0}
 .sms-bank-shortcut{padding-top:0}
