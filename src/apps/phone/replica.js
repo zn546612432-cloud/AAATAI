@@ -48,7 +48,7 @@ function contactDetails(data){
 }
 function keypad(data){
   const keys=[['1',''],['2','ABC'],['3','DEF'],['4','GHI'],['5','JKL'],['6','MNO'],['7','PQRS'],['8','TUV'],['9','WXYZ'],['*',''],['0','+'],['#','']];
-  return `<div class="ios-phone-page ios-keypad-page"><header class="ios-region">${btn('phone-region',`${esc(data.self.region)} <span class="ios-region-chevrons">⌃<small>⌄</small></span>`,'',`aria-label="当前地区${esc(data.self.region)}"`)}</header>
+  return `<div class="ios-phone-page ios-keypad-page"><header class="ios-region">${btn('phone-region',esc(data.self.region),'',`aria-label="当前地区${esc(data.self.region)}"`)}</header>
   <div class="ios-keypad-spacer"><div class="ios-entered-digits">${digits?esc(digits):'&nbsp;'}</div></div>
   <div class="ios-digit-grid">${keys.map(([n,letters])=>btn('phone-digit',`<span>${n}</span>${letters?`<small>${letters}</small>`:n==='0'?'<small>+</small>':'<small>&nbsp;</small>'}`,'ios-digit',`data-digit="${n}" aria-label="数字${n}"`)).join('')}</div>
   <div class="ios-call-zone">${btn('phone-call',icon('call',34),'ios-green-call',`aria-label="拨打电话"`)}${digits?btn('phone-erase',icon('erase',23),'ios-erase',`aria-label="删除数字"`):''}</div>${tabs()}</div>`;
@@ -66,7 +66,7 @@ export function handle(a,t,c){
   if(a==='phone-filter'){filter=t.dataset.filter;c.refresh();}
   if(a==='phone-digit'){digits+=t.dataset.digit;c.refresh();}
   if(a==='phone-erase'){digits=digits.slice(0,-1);c.refresh();}
-  if(a==='phone-region')c.toast(`当前地区：${phoneData(c.store.get()).self.region}`);
+  if(a==='phone-region')return;
   if(a==='phone-call')c.toast(digits?'电话功能暂未接入':'请先输入电话号码');
   if(a==='phone-person'){personId=t.dataset.id;selected='person';c.refresh();}
   if(a==='phone-use-number'){const person=phoneData(c.store.get()).contacts.find(x=>x.id===t.dataset.id);if(person?.number){digits=person.number.replace(/[^\d+]/g,'');selected='keypad';c.refresh();}}

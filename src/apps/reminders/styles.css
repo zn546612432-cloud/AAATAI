@@ -7,3 +7,9 @@
 .app-reminders .reminders-float{position:sticky;bottom:0;left:0;width:max-content;z-index:2;margin:26px 0 0}
 .app-reminders .reminders-float button{background:#f2f2f7e8;padding:13px 15px;border-radius:20px;backdrop-filter:blur(12px)}
 .app-reminders .reminder-item span{min-width:0;overflow-wrap:anywhere}
+
+/* The home widget is not the scroll viewport; the app owns a real touch-scroll container. */
+.app-reminders{min-height:0;overflow:hidden}
+.app-reminders .app-content{display:flex;flex-direction:column;min-height:0;height:auto!important;flex:1;overflow:hidden!important}
+.app-reminders .reminders-app{flex:1;min-height:0;height:auto!important;max-height:100%;overflow-y:scroll!important;touch-action:pan-y!important;-webkit-overflow-scrolling:touch;padding-bottom:calc(88px + env(safe-area-inset-bottom,0px))!important}
+.app-reminders .reminders-float{position:relative;bottom:auto;left:auto;margin:18px 0 12px}
