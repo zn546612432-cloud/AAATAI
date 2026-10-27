@@ -38,7 +38,7 @@ export function render({store},loc){const s=store.get(),route=loc.route.slice(1)
 export function handle(a,t,ctx){
  const {store,router}=ctx,id=t.dataset.id;
  if(a==='editor-ghost-save'){saveGhostConfig(t,ctx);return;}
- if(a==='editor-ghost-mission'){const type=document.getElementById('gh-mission-type').value;store.update(s=>{const g=ensureGhost(s);g.missionTypes??={};g.missionTypes['mirage-recruit-hacker']=type;});return;}
+ if(a==='editor-ghost-mission'){const type=document.getElementById('gh-mission-type').value,input=document.getElementById('gh-order-seconds'),seconds=input.value===''?null:Number(input.value);if(seconds!==null&&(!Number.isInteger(seconds)||seconds<10||seconds>600)){input.reportValidity();return;}store.update(s=>{const g=ensureGhost(s);g.missionTypes??={};g.orderConfigs??={};g.missionTypes['mirage-recruit-hacker']=type;g.orderConfigs['mirage-recruit-hacker']={seconds};});return;}
  if(a==='editor-tab'){if(t.dataset.tab==='sms')store.update(s=>{s.editor.channel='messages';s.editor.conversation=s.content.conversations.messages?.[0]?.id||'';});router.open({appId:'editor',route:'/'+t.dataset.tab});return;}
  if(a.startsWith('preset-')&&handlePresetAction(a,t,ctx))return;
  if(a==='delete-phone-contact'){store.update(s=>{s.content.phone.contacts=s.content.phone.contacts.filter(p=>p.id!==id);});ctx.toast('联系人已删除');return;}
