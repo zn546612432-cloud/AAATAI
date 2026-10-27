@@ -13,6 +13,7 @@ import {mountViewport} from './system/viewport.js';
 import {dragOffset,nearestPage,pageTarget} from './system/pager.js';
 import {isNativeTabSwitch} from './system/navigation.js';
 import {errorHaptic} from './system/haptics.js';
+import {mountWeatherSwipe} from './apps/weather/replica.js';
 
 const store=new PhoneStore(),router=new PhoneRouter(store,registry),lockscreen=new LockScreen();
 mountShell();
@@ -57,7 +58,7 @@ function render(){
  const messagePane=$('#screen-layer .chat-messages'),nearBottom=!messagePane||messagePane.scrollHeight-messagePane.clientHeight-messagePane.scrollTop<85;
  const oldKeys=new Set([...screen.querySelectorAll('.message-row[data-key]')].map(el=>el.dataset.key));
  $('#phone').classList.toggle('is-locked',!s.unlocked);$('#phone').classList.toggle('show-passcode',!s.unlocked&&lockscreen.stage!=='cover');
- $('#phone').classList.toggle('app-light-active',s.unlocked&&current.appId!=='home'&&!['mirage','ghost','noapp'].includes(current.appId));
+ $('#phone').classList.toggle('app-light-active',s.unlocked&&current.appId!=='home'&&!['mirage','ghost','noapp','weather'].includes(current.appId));
  const wallpaper=`url("${s.wallpaper}")`;if($('#wallpaper').style.backgroundImage!==wallpaper)$('#wallpaper').style.backgroundImage=wallpaper;
  patchHTML($('#status-layer'),status(s));patchHTML($('#shade-layer'),notifications(s));
  let body;
@@ -121,6 +122,7 @@ function enterDigit(key){
 }
 store.subscribe(()=>{if(!quietEditorUpdate)render();});render();
 mountInteractions($('#root'),ctx());
+mountWeatherSwipe($('#root'),ctx);
 setInterval(()=>{try{const delivered=delivery.tick(Date.now(),!document.hidden);if(delivered.length&&store.get().unlocked){const incoming=delivered.find(m=>m.from!=='me'&&!isConversationOpen(store.get(),m.channel,m.conversationId));if(incoming)toast(`${incoming.title}：${incoming.body}`);}}catch(err){toast(err.message||'消息未能保存');}},500);
 $('#root').addEventListener('click',async e=>{
   const openedMessageMenu=$('#screen-layer .wx-message-menu:not([hidden])');

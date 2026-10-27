@@ -1,10 +1,11 @@
 import {uid} from '../services/id.js';
 import {datePreset,messageDate,messageClock,setMessageDate} from '../services/messaging/timestamps.js';
 import {dateParts,dateLabel,setPreviewDate} from '../services/calendar.js';
+import {phoneData} from '../services/phone-data.js';
 import {btn,card,demo,empty,esc} from '../system/ui.js';
 import {conversations as allConversations,selectedConversation,actors,actorName,renameConversation,renameActor,setSchedule,newMessage,reorderMessage,moveMessageTo,clearDelivery,scheduleLabel,createConversation,chatApps,isGroup} from './conversations/model.js';
 export const manifest={id:'editor',name:'内容编辑器',glyph:'✎',tone:'#65798c',hidden:true,defaultRoute:'/',kicker:'DEVELOPER / LOCAL DRAFT'};
-const tabs=[['conversations','对话'],['assets','图片'],['preview','预览']];
+const tabs=[['conversations','对话'],['sms','短信编辑'],['phone','电话编辑'],['assets','图片'],['preview','预览']];
 const attr=v=>esc(v);
 function nav(route){return `<div class="editor-tabs">${tabs.map(([id,name])=>btn('editor-tab',name,route===id?'active':'',`data-tab="${id}"`)).join('')}</div>`;}
 function messageCard(m,c,s,index){
@@ -18,11 +19,24 @@ function conversations(s){
  return `<div class="editor-panel">${newConversationForm(s)}<label>选择对话</label><select id="editor-conversation" aria-label="选择对话">${list.map(x=>`<option value="${attr(x.channel+':'+x.c.id)}" ${x.channel===channel&&x.c.id===c.id?'selected':''}>${esc({wechat:'微信',noapp:'NoApp',mirage:'MIRAGE',messages:'信息'}[x.channel]||x.channel)} / ${esc(x.c.name)}</option>`).join('')}</select><section class="editor-conversation-info"><label>联系人／群聊名称<input id="editor-conversation-name" value="${attr(c.name)}" maxlength="60" aria-label="联系人或群聊名称"></label><details class="editor-actors"><summary>编辑发言人名字 <span>${actors(c).length} 人</span></summary><div class="editor-actor-list">${actors(c).map(a=>`<label>${a.id==='me'?'我方':isGroup(c)?'群成员':'对方'}<input data-actor-name="${attr(a.id)}" value="${attr(a.name)}" maxlength="60" aria-label="${attr(a.name)}的显示名称"></label>`).join('')}</div></details><p class="editor-save-note">输入即时保存到本机。</p></section><div class="editor-list-heading"><strong>${c.messages.length} 条消息</strong><span>${pending} 条待触发</span></div><p class="editor-help">按住 ⠿ 拖动排序，手机也可操作。发送日期和几点发控制聊天里的时间标记；下方出现条件控制何时弹出，两者分开设置。定时按游戏日与游戏时间触发；在“预览”页调整时间。“预览弹出”会切到聊天，定时消息会同步调整本机游戏时间。</p><div class="editor-message-list">${c.messages.map((m,i)=>messageCard(m,c,s,i)).join('')}</div><div class="editor-add-actions">${btn('add-message','＋ 添加文字','button-primary')}${btn('add-image-message','＋ 添加图片','button-quiet')}</div>${btn('preview-chat','预览整段对话　↗','button-quiet wide')}<p class="editor-help">已弹出的消息会保留为记录；重新测试时可点“重新等待触发”。</p><div class="editor-drag-status" role="status" aria-live="polite"></div></div>`;
 }
 function assets(s){return `<div class="editor-panel">${card(`<strong>手机壁纸</strong><p>当前图片可从本机替换。</p>${btn('replace-wallpaper','更换壁纸','button-primary wide')}`)}<div class="section-heading">独立 App 图标</div><div class="surface-list">${Object.entries({wechat:'微信',noapp:'NoApp',chess:'国际象棋',mirage:'MIRAGE',photos:'照片',music:'音乐'}).map(([id,name])=>`<div class="list-row"><span class="list-copy"><strong>${name}</strong></span>${btn('replace-icon','替换','text-button',`data-id="${id}"`)}</div>`).join('')}</div><div class="section-heading">相册</div>${btn('add-photo','导入照片','button-primary wide')}</div>`;}
+function sms(s){const list=s.content.conversations.messages||[],c=list.find(x=>x.id===s.editor.conversation)||list[0];return `<div class="editor-panel"><p class="editor-help">发件人、发送日期和时间、正文、出现条件可在这里修改。设为“指定游戏日与时间弹出”后，玩家到达该时间才会收到短信。</p><details class="new-conversation"><summary>＋ 新建短信发件人</summary><form data-form="new-sms"><label>号码或发件人<input name="name" maxlength="60" required placeholder="例如 106900000004"></label><button type="submit" class="button-primary wide">创建短信窗口</button></form></details>${c?`<label>选择发件人</label><select id="editor-conversation" aria-label="选择短信发件人">${list.map(x=>`<option value="messages:${attr(x.id)}" ${x.id===c.id?'selected':''}>${esc(x.name)}</option>`).join('')}</select><div class="editor-list-heading"><strong>${c.messages.length} 条短信</strong></div><div class="editor-message-list">${c.messages.map((m,i)=>messageCard(m,c,s,i)).join('')}</div>${btn('add-message','＋ 添加短信','button-primary wide')}${btn('preview-chat','预览短信对话 ↗','button-quiet wide')}`:'<p>暂无短信发件人</p>'}</div>`;}
+function phoneEditor(s){
+ const data=phoneData(s),textInput=(name,value,label,required=false)=>`<label>${label}<input name="${name}" value="${attr(value||'')}" maxlength="60" ${required?'required':''}></label>`;
+ return `<div class="editor-panel editor-phone"><p class="editor-help">电话 App 与这里共用同一份本机数据。姓名、电话号码和通话记录修改后刷新也会保留。尚未提供的真实号码保持空白或遮罩，不会编造剧情联系人号码。</p>
+ <div class="section-heading">我的名片</div><form class="edit-message" data-form="phone-self">${textInput('name',data.self.name,'姓名',true)}${textInput('number',data.self.number,'电话号码（澳门 +853）',true)}${textInput('region',data.self.region,'地区',true)}<button type="submit" class="button-primary wide">保存我的名片</button></form>
+ <div class="section-heading">联系人 · ${data.contacts.length} 位</div><details class="new-conversation"><summary>＋ 新建联系人</summary><form data-form="phone-add-contact">${textInput('name','','联系人姓名',true)}${textInput('number','','电话号码（可暂时留空）')}<button class="button-primary wide" type="submit">添加联系人</button></form></details>
+ ${data.contacts.map(person=>`<details class="phone-editor-item"><summary><strong>${esc(person.name)}</strong><small>${esc(person.number||'未设置号码')}　›</small></summary><form data-form="phone-edit-contact"><input type="hidden" name="id" value="${attr(person.id)}">${textInput('name',person.name,'姓名',true)}${textInput('number',person.number,'电话号码')}<div class="phone-editor-actions"><button class="button-primary" type="submit">保存联系人</button>${btn('delete-phone-contact','删除','text-button danger',`type="button" data-id="${attr(person.id)}"`)}</div></form></details>`).join('')}
+ <div class="section-heading">通话记录 · ${data.calls.length} 条</div><details class="new-conversation"><summary>＋ 新增通话记录</summary><form data-form="phone-add-call">${textInput('number','','电话号码',true)}${textInput('name','','显示名称（可选）')}${textInput('place',data.self.region,'地区',true)}${textInput('day','今天','通话日期／显示时间',true)}<label class="phone-checkbox"><input type="checkbox" name="missed"> 未接来电</label><button class="button-primary wide" type="submit">添加通话记录</button></form></details>
+ ${data.calls.map(call=>`<details class="phone-editor-item"><summary><strong>${esc(call.name||call.number)}</strong><small>${esc(call.place)} · ${esc(call.day)} ${call.missed?' · 未接来电':''}　›</small></summary><form data-form="phone-edit-call"><input type="hidden" name="id" value="${attr(call.id)}">${textInput('number',call.number,'电话号码',true)}${textInput('name',call.name,'显示名称（可选）')}${textInput('place',call.place,'地区',true)}${textInput('day',call.day,'通话日期／显示时间',true)}<label class="phone-checkbox"><input type="checkbox" name="missed" ${call.missed?'checked':''}> 未接来电</label><div class="phone-editor-actions"><button class="button-primary" type="submit">保存通话记录</button>${btn('delete-phone-call','删除','text-button danger',`type="button" data-id="${attr(call.id)}"`)}</div></form></details>`).join('')}
+ <p class="editor-help">开发者修改仅保存在当前浏览器。如需迁移至其他设备，请使用“预览”页的导出功能。</p></div>`;
+}
 function preview(s){const d=dateParts(s);return `<div class="editor-panel">${card(`<span class="eyebrow">DATE PREVIEW</span><h2>${dateLabel(s)}</h2><p>手机显示正常日期。剧情进度只在这里调整，用于 App 开放与消息触发；预览日期不作为电影官方时间线。</p>`)}<form data-form="preview"><label>手机显示日期</label><input name="date" type="date" value="${d.iso}" aria-label="手机显示日期" required><label>游戏时间</label><input name="clock" type="time" value="${s.clock}" required><label>内部剧情进度（1–90，仅开发者可见）</label><input name="day" type="number" min="1" max="90" value="${s.day}" required><button class="button-primary wide" type="submit">应用预览</button></form>${btn('export-content','导出全部本机内容','button-quiet wide')}</div>`;}
-export function render({store},loc){const s=store.get(),route=loc.route.slice(1)||'conversations';return `<div class="page-pad editor-page"><span class="eyebrow">LOCAL DRAFT ${demo()}</span><div class="large-title">内容编辑器</div>${nav(route)}${route==='assets'?assets(s):route==='preview'?preview(s):conversations(s)}</div>`;}
+export function render({store},loc){const s=store.get(),route=loc.route.slice(1)||'conversations';return `<div class="page-pad editor-page"><span class="eyebrow">LOCAL DRAFT ${demo()}</span><div class="large-title">内容编辑器</div>${nav(route)}${route==='assets'?assets(s):route==='preview'?preview(s):route==='sms'?sms(s):route==='phone'?phoneEditor(s):conversations(s)}</div>`;}
 export function handle(a,t,ctx){
  const {store,router}=ctx,id=t.dataset.id;
- if(a==='editor-tab'){router.open({appId:'editor',route:'/'+t.dataset.tab});return;}
+ if(a==='editor-tab'){if(t.dataset.tab==='sms')store.update(s=>{s.editor.channel='messages';s.editor.conversation=s.content.conversations.messages?.[0]?.id||'';});router.open({appId:'editor',route:'/'+t.dataset.tab});return;}
+ if(a==='delete-phone-contact'){store.update(s=>{s.content.phone.contacts=s.content.phone.contacts.filter(p=>p.id!==id);});ctx.toast('联系人已删除');return;}
+ if(a==='delete-phone-call'){store.update(s=>{s.content.phone.calls=s.content.phone.calls.filter(call=>call.id!==id);});ctx.toast('通话记录已删除');return;}
  if(a==='preview-chat'){const x=selectedConversation(store.get());if(x)router.open({appId:x.channel,route:'/chat/'+x.c.id});return;}
  if(a==='add-message')store.update(s=>{const {c}=selectedConversation(s);c.messages.push(newMessage(s,c));});
  if(a==='duplicate-message')store.update(s=>{const {c}=selectedConversation(s),i=c.messages.findIndex(m=>m.id===id);if(i<0)return;const m=structuredClone(c.messages[i]);m.id=uid();delete m.delivery;delete m.actual;m.authored=true;c.messages.splice(i+1,0,m);});
@@ -69,7 +83,28 @@ export function input(t,ctx){
  root.querySelectorAll('[data-actor-name]').forEach(field=>{const name=people.get(field.dataset.actorName);if(name){field.setAttribute('aria-label',name+'的显示名称');if(field!==t)field.value=name;}});
  const title=root.querySelector('#editor-conversation-name');if(title&&title!==t)title.value=c.name;
 }
-export function submit(f,ctx){const {store,toast}=ctx,data=new FormData(f);if(f.dataset.form==='new-conversation'){createConversation(store,{channel:String(data.get('channel')),name:String(data.get('name')||''),type:String(data.get('type')),members:String(data.get('members')||'')});const pane=document.querySelector('#app-content');if(pane)pane.scrollTop=0;toast('对话窗口已创建，可以添加消息');}if(f.dataset.form==='preview'){store.update(s=>setPreviewDate(s,{day:Number(data.get('day')),clock:String(data.get('clock')),date:String(data.get('date'))}));toast('预览日期已更新');}}
+export function submit(f,ctx){const {store,toast}=ctx,data=new FormData(f),form=f.dataset.form;
+ if(form?.startsWith('phone-')){
+  const value=key=>String(data.get(key)||'').trim();
+  const name=value('name'),number=value('number'),place=value('place'),day=value('day'),id=value('id');
+  if(form==='phone-self'){
+   if(!name||!number||!value('region'))throw Error('请填写姓名、澳门号码和地区');
+   store.update(s=>{s.content.phone.self={name,number,region:value('region')};});toast('我的名片已保存');return;
+  }
+  if(form==='phone-add-contact'||form==='phone-edit-contact'){
+   if(!name)throw Error('请输入联系人姓名');
+   store.update(s=>{const list=s.content.phone.contacts;if(form==='phone-add-contact')list.push({id:uid(),name,number});else{const person=list.find(x=>x.id===id);if(!person)throw Error('联系人不存在');Object.assign(person,{name,number});}});
+   toast(form==='phone-add-contact'?'联系人已添加':'联系人已保存');return;
+  }
+  if(form==='phone-add-call'||form==='phone-edit-call'){
+   if(!number||!place||!day)throw Error('请填写电话号码、地区和时间');
+   store.update(s=>{const list=s.content.phone.calls,call={name,number,place,day,missed:data.has('missed')};if(form==='phone-add-call')list.unshift({id:uid(),...call});else{const existing=list.find(x=>x.id===id);if(!existing)throw Error('通话记录不存在');Object.assign(existing,call);}});
+   toast(form==='phone-add-call'?'通话记录已添加':'通话记录已保存');return;
+  }
+ }
+ if(form==='new-conversation'||form==='new-sms'){createConversation(store,{channel:form==='new-sms'?'messages':String(data.get('channel')),name:String(data.get('name')||''),type:form==='new-sms'?'direct':String(data.get('type')),members:String(data.get('members')||'')});const pane=document.querySelector('#app-content');if(pane)pane.scrollTop=0;toast('对话窗口已创建，可以添加消息');}
+ if(form==='preview'){store.update(s=>setPreviewDate(s,{day:Number(data.get('day')),clock:String(data.get('clock')),date:String(data.get('date'))}));toast('预览日期已更新');}
+}
 export function mountInteractions(root,ctx){
  let drag=null;
  const cleanup=()=>{root.querySelectorAll('.drag-active,.drop-before,.drop-after').forEach(el=>el.classList.remove('drag-active','drop-before','drop-after'));root.classList.remove('editor-dragging');};

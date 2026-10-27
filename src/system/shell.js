@@ -21,7 +21,7 @@ export function lock(s,stage='cover',digits=''){
 const wxBackIcon='<svg viewBox="0 0 24 24" width="27" height="27" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 4.8-7.2 7.2 7.2 7.2"/></svg>';
 const wxMoreIcon='<svg viewBox="0 0 28 24" width="29" height="24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.85"/><circle cx="14" cy="12" r="1.85"/><circle cx="23" cy="12" r="1.85"/></svg>';
 export function appFrame(s,app,body){
-  const dark=['mirage','ghost','noapp'].includes(app.manifest.id),loc=s.nav.current;
+  const dark=['mirage','ghost','noapp','weather'].includes(app.manifest.id),loc=s.nav.current;
   const id=loc.route.startsWith('/chat/')?loc.route.slice(6):null;
   const c=id?s.content.conversations[app.manifest.id]?.find(c=>c.id===id):null;
   const p=app.manifest.id==='noapp'&&id==='tai'?taiPresence(s):null;
