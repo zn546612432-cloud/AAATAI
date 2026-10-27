@@ -4,8 +4,9 @@ import {dateParts,dateLabel,setPreviewDate} from '../services/calendar.js';
 import {phoneData} from '../services/phone-data.js';
 import {btn,card,demo,empty,esc} from '../system/ui.js';
 import {conversations as allConversations,selectedConversation,actors,actorName,renameConversation,renameActor,setSchedule,newMessage,reorderMessage,moveMessageTo,clearDelivery,scheduleLabel,createConversation,chatApps,isGroup} from './conversations/model.js';
+import {presetEditor,handlePresetAction,changePresetField,isPresetTextField,presetTestSubmit,stagePresetFile} from './presets/index.js';
 export const manifest={id:'editor',name:'内容编辑器',glyph:'✎',tone:'#65798c',hidden:true,defaultRoute:'/',kicker:'DEVELOPER / LOCAL DRAFT'};
-const tabs=[['conversations','对话'],['sms','短信编辑'],['phone','电话编辑'],['assets','图片'],['preview','预览']];
+const tabs=[['conversations','对话'],['presets','剧情预设'],['sms','短信编辑'],['phone','电话编辑'],['assets','图片'],['preview','预览']];
 const attr=v=>esc(v);
 function nav(route){return `<div class="editor-tabs">${tabs.map(([id,name])=>btn('editor-tab',name,route===id?'active':'',`data-tab="${id}"`)).join('')}</div>`;}
 function messageCard(m,c,s,index){
@@ -31,10 +32,11 @@ function phoneEditor(s){
  <p class="editor-help">开发者修改仅保存在当前浏览器。如需迁移至其他设备，请使用“预览”页的导出功能。</p></div>`;
 }
 function preview(s){const d=dateParts(s);return `<div class="editor-panel">${card(`<span class="eyebrow">DATE PREVIEW</span><h2>${dateLabel(s)}</h2><p>手机显示正常日期。剧情进度只在这里调整，用于 App 开放与消息触发；预览日期不作为电影官方时间线。</p>`)}<form data-form="preview"><label>手机显示日期</label><input name="date" type="date" value="${d.iso}" aria-label="手机显示日期" required><label>游戏时间</label><input name="clock" type="time" value="${s.clock}" required><label>内部剧情进度（1–90，仅开发者可见）</label><input name="day" type="number" min="1" max="90" value="${s.day}" required><button class="button-primary wide" type="submit">应用预览</button></form>${btn('export-content','导出全部本机内容','button-quiet wide')}</div>`;}
-export function render({store},loc){const s=store.get(),route=loc.route.slice(1)||'conversations';return `<div class="page-pad editor-page"><span class="eyebrow">LOCAL DRAFT ${demo()}</span><div class="large-title">内容编辑器</div>${nav(route)}${route==='assets'?assets(s):route==='preview'?preview(s):route==='sms'?sms(s):route==='phone'?phoneEditor(s):conversations(s)}</div>`;}
+export function render({store},loc){const s=store.get(),route=loc.route.slice(1)||'conversations';return `<div class="page-pad editor-page"><span class="eyebrow">LOCAL DRAFT ${demo()}</span><div class="large-title">内容编辑器</div>${nav(route)}${route==='presets'?presetEditor(s):route==='assets'?assets(s):route==='preview'?preview(s):route==='sms'?sms(s):route==='phone'?phoneEditor(s):conversations(s)}</div>`;}
 export function handle(a,t,ctx){
  const {store,router}=ctx,id=t.dataset.id;
  if(a==='editor-tab'){if(t.dataset.tab==='sms')store.update(s=>{s.editor.channel='messages';s.editor.conversation=s.content.conversations.messages?.[0]?.id||'';});router.open({appId:'editor',route:'/'+t.dataset.tab});return;}
+ if(a.startsWith('preset-')&&handlePresetAction(a,t,ctx))return;
  if(a==='delete-phone-contact'){store.update(s=>{s.content.phone.contacts=s.content.phone.contacts.filter(p=>p.id!==id);});ctx.toast('联系人已删除');return;}
  if(a==='delete-phone-call'){store.update(s=>{s.content.phone.calls=s.content.phone.calls.filter(call=>call.id!==id);});ctx.toast('通话记录已删除');return;}
  if(a==='preview-chat'){const x=selectedConversation(store.get());if(x)router.open({appId:x.channel,route:'/chat/'+x.c.id});return;}
@@ -59,6 +61,7 @@ export function handle(a,t,ctx){
 }
 export function change(t,ctx){
  const {store}=ctx;
+ if(changePresetField(t,ctx))return;
  if(t.id==='editor-conversation'){const i=t.value.indexOf(':');store.update(s=>{s.editor.channel=t.value.slice(0,i);s.editor.conversation=t.value.slice(i+1);});return;}
  if(t.id==='editor-conversation-name')store.update(s=>renameConversation(selectedConversation(s).c,t.value));
  if(t.dataset.actorName)store.update(s=>renameActor(selectedConversation(s).c,t.dataset.actorName,t.value));
@@ -67,9 +70,10 @@ export function change(t,ctx){
  if(t.dataset.scheduleField)store.update(s=>{const {c}=selectedConversation(s),m=c.messages.find(m=>m.id===t.dataset.id);if(!m)return;const field=t.dataset.scheduleField,mode=field==='mode'?t.value:m.schedule?.mode;const input=field==='mode'?{mode}:{...m.schedule,[field]:t.value};setSchedule(s,c,m,input);});
  if(t.dataset.orderMessage){const value=Number(t.value);if(!Number.isInteger(value)||value<1)throw Error('排序位置需为正整数');store.update(s=>moveMessageTo(selectedConversation(s).c,t.dataset.orderMessage,value-1));}
 }
-export const isTextEdit=t=>t.id==='editor-conversation-name'||!!t.dataset.actorName||!!t.dataset.messageField&&['text','time','sentDate'].includes(t.dataset.messageField)||!!t.dataset.scheduleField&&t.dataset.scheduleField!=='mode';
+export const isTextEdit=t=>isPresetTextField(t)||t.id==='editor-conversation-name'||!!t.dataset.actorName||!!t.dataset.messageField&&['text','time','sentDate'].includes(t.dataset.messageField)||!!t.dataset.scheduleField&&t.dataset.scheduleField!=='mode';
 export function input(t,ctx){
  if(!isTextEdit(t))return;
+ if(isPresetTextField(t)){changePresetField(t,ctx);return;}
  if((t.dataset.scheduleField||['date','time'].includes(t.type))&&(!t.value||!t.checkValidity()))return;
  if((t.id==='editor-conversation-name'||t.dataset.actorName)&&!t.value.trim())return;
  change(t,ctx);
@@ -84,6 +88,7 @@ export function input(t,ctx){
  const title=root.querySelector('#editor-conversation-name');if(title&&title!==t)title.value=c.name;
 }
 export function submit(f,ctx){const {store,toast}=ctx,data=new FormData(f),form=f.dataset.form;
+ if(form==='preset-test'){presetTestSubmit(f,ctx);return;}
  if(form?.startsWith('phone-')){
   const value=key=>String(data.get(key)||'').trim();
   const name=value('name'),number=value('number'),place=value('place'),day=value('day'),id=value('id');
@@ -107,6 +112,13 @@ export function submit(f,ctx){const {store,toast}=ctx,data=new FormData(f),form=
 }
 export function mountInteractions(root,ctx){
  let drag=null;
+ root.addEventListener('change',async e=>{
+  if(e.target.id!=='preset-import-file')return;
+  const file=e.target.files?.[0];
+  if(!file)return;
+  try{await stagePresetFile(file,ctx);}catch(error){ctx.toast(error.message||'剧情文件无法导入');}
+  finally{e.target.value='';}
+ });
  const cleanup=()=>{root.querySelectorAll('.drag-active,.drop-before,.drop-after').forEach(el=>el.classList.remove('drag-active','drop-before','drop-after'));root.classList.remove('editor-dragging');};
  root.addEventListener('pointerdown',e=>{
   const grip=e.target.closest('[data-drag-message]');if(!grip||!e.isPrimary||e.button!==0||ctx.store.get().nav.current.appId!=='editor')return;

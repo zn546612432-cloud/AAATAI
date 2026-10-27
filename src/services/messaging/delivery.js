@@ -23,9 +23,12 @@ export class MessageDelivery {
   this.waiting=waiting;if(!due.length)return [];
   this.store.update(next=>{for(const item of due){
    const c=next.content.conversations[item.channel]?.find(c=>c.id===item.conversationId),m=c?.messages.find(m=>m.id===item.id);if(!m||m.delivery)continue;
-   m.delivery={day:next.day,clock:next.clock};
+   // Fast-forward can cross several authored timestamps in one tick. Keep the
+   // original delivery time in the chat history even if it was observed later.
+   const at=m.schedule?.mode==='game-time'?{day:m.schedule.day,clock:m.schedule.clock}:{day:next.day,clock:next.clock};
+   m.delivery=at;
    if(item.from!=='me'&&!isConversationOpen(next,item.channel,c.id))next.notifications.unshift({id:`message-${item.channel}-${c.id}-${m.id}`,messageId:m.id,conversationId:c.id,title:item.title,body:item.body,link:{appId:item.channel,route:'/chat/'+c.id,params:{}},demo:!!m.demo});
-   next.events.push({type:'authored_message_delivered',channel:item.channel,conversationId:c.id,messageId:m.id,day:next.day,clock:next.clock});
+   next.events.push({type:'authored_message_delivered',channel:item.channel,conversationId:c.id,messageId:m.id,day:at.day,clock:at.clock});
   }});
   return due;
  }

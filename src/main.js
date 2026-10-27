@@ -15,12 +15,19 @@ import {isNativeTabSwitch} from './system/navigation.js';
 import {errorHaptic} from './system/haptics.js';
 import {mountWeatherSwipe} from './apps/weather/replica.js';
 import {createTaskSwitcher} from './system/task-switcher.js';
-import {tickAlarms} from './apps/clock/features/alarms/index.js';
+import {drainBattery,plugIn,unplug} from './system/power/battery.js';
+import {advanceGameMinutes,tickWorld,setSleeping,dismissAlarm} from './system/time/clock.js';
+import {powerFullscreen} from './system/power/controls.js';
+import {PresetConversationEngine} from './story/presets/engine.js';
+import {hydrateBuiltInPresets} from './story/presets/catalog.js';
 
-const store=new PhoneStore(),router=new PhoneRouter(store,registry),lockscreen=new LockScreen();
+const store=new PhoneStore();
+try{await hydrateBuiltInPresets(store);}catch(error){console.error('内置剧情加载失败',error);}
+const router=new PhoneRouter(store,registry),lockscreen=new LockScreen();
 mountShell();
-let shade=false,toastTimer,assetHandler=null,entryAnimation=false,lastNavigation=null,lastLocation=null,quietEditorUpdate=false,draggingHome=false,pagerBase=null,unlockingCover=false,swipeHomeReturn=null;
+let shade=false,toastTimer,assetHandler=null,entryAnimation=false,lastNavigation=null,lastLocation=null,quietEditorUpdate=false,draggingHome=false,pagerBase=null,unlockingCover=false,swipeHomeReturn=null,islandExpanded=false,islandTimer=null,alarmSound=null;
 const delivery=new MessageDelivery(store);
+const presets=new PresetConversationEngine(store);
 const tasks=createTaskSwitcher({router,registry});
 // Opening the display always requires a new unlock, without removing saved content.
 if(store.get().unlocked)store.update(s=>{s.unlocked=false;});
@@ -63,7 +70,9 @@ function render(){
  $('#phone').classList.toggle('is-locked',!s.unlocked);$('#phone').classList.toggle('show-passcode',!s.unlocked&&lockscreen.stage!=='cover');
  $('#phone').classList.toggle('app-light-active',s.unlocked&&current.appId!=='home'&&!['mirage','ghost','noapp','weather'].includes(current.appId));
  const wallpaper=`url("${s.wallpaper}")`;if($('#wallpaper').style.backgroundImage!==wallpaper)$('#wallpaper').style.backgroundImage=wallpaper;
- patchHTML($('#status-layer'),status(s));patchHTML($('#shade-layer'),notifications(s));
+ patchHTML($('#status-layer'),status(s,{islandExpanded}));patchHTML($('#shade-layer'),notifications(s));
+ const fullscreen=powerFullscreen(s),overlay=$('#day-transition-layer');
+ patchHTML(overlay,fullscreen);overlay.classList.toggle('is-visible',!!fullscreen);overlay.setAttribute('aria-hidden',String(!fullscreen));
  let body;
  if(!s.unlocked)body=lock(s,lockscreen.stage,lockscreen.digits);
  else if(current.appId==='home')body=home(s);
@@ -124,10 +133,42 @@ function enterDigit(key){
     },260);
   }
 }
+function stopAlarmSound(){if(alarmSound){clearInterval(alarmSound);alarmSound=null;}}
+function startAlarmSound(){
+ if(alarmSound)return;
+ const AudioContextType=window.AudioContext||window.webkitAudioContext;
+ let audio=null;try{if(AudioContextType)audio=new AudioContextType();}catch{}
+ const pulse=()=>{if(!store.get().alarmRinging){stopAlarmSound();audio?.close();return;}
+  try{if(audio){audio.resume();const osc=audio.createOscillator(),gain=audio.createGain();osc.type='sine';osc.frequency.value=880;gain.gain.setValueAtTime(.0001,audio.currentTime);gain.gain.exponentialRampToValueAtTime(.08,audio.currentTime+.04);gain.gain.exponentialRampToValueAtTime(.0001,audio.currentTime+.30);osc.connect(gain);gain.connect(audio.destination);osc.start();osc.stop(audio.currentTime+.32);}}catch{}
+  navigator.vibrate?.([170,100,170]);
+ };pulse();alarmSound=setInterval(pulse,1050);
+}
+function collapseIsland(delay=0){
+ clearTimeout(islandTimer);
+ if(delay){islandTimer=setTimeout(()=>collapseIsland(),delay);return;}
+ islandExpanded=false;render();
+}
+function expandIsland(){
+ if(store.get().emergencyCharge||store.get().poweredOff)return;
+ islandExpanded=true;render();collapseIsland(8000);
+}
 store.subscribe(()=>{if(!quietEditorUpdate)render();});render();
 mountInteractions($('#root'),ctx());
 mountWeatherSwipe($('#root'),ctx);
-setInterval(()=>{try{const delivered=delivery.tick(Date.now(),!document.hidden);if(delivered.length&&store.get().unlocked){const incoming=delivered.find(m=>m.from!=='me'&&!isConversationOpen(store.get(),m.channel,m.conversationId));if(incoming)toast(`${incoming.title}：${incoming.body}`);}const alarms=tickAlarms(store);if(alarms.length&&store.get().unlocked)toast(`闹钟：${alarms[0].label||'闹钟'}`);}catch(err){toast(err.message||'消息未能保存');}},500);
+setInterval(()=>{try{presets.tick();const delivered=delivery.tick(Date.now(),!document.hidden);if(delivered.length&&store.get().unlocked){const incoming=delivered.find(m=>m.from!=='me'&&!isConversationOpen(store.get(),m.channel,m.conversationId));if(incoming)toast(`${incoming.title}：${incoming.body}`);}}catch(err){toast(err.message||'消息未能保存');}},500);
+// The page runs in foreground only; a backgrounded tab never skips story events.
+let lastPowerTick=performance.now();
+setInterval(()=>{
+ const now=performance.now(),elapsed=Math.max(0,Math.min(2500,now-lastPowerTick));
+ lastPowerTick=now;
+ if(document.hidden||store.get().alarmRinging||store.get().emergencyCharge||store.get().poweredOff||store.get().nav.current.appId==='editor')return;
+ const editing=document.activeElement?.matches?.('.composer input[name="text"],.composer textarea,[contenteditable="true"]')||false;
+ let outcome={};
+ store.update(s=>{outcome=tickWorld(s,elapsed,{focused:editing});drainBattery(s,elapsed);});
+ if(outcome.event==='alarm'){collapseIsland();startAlarmSound();}
+ if(outcome.event==='emergency')collapseIsland();
+ if(outcome.event==='wake'){collapseIsland();lockscreen.reset();}
+},800);
 $('#root').addEventListener('click',async e=>{
   const openedMessageMenu=$('#screen-layer .wx-message-menu:not([hidden])');
   if(openedMessageMenu&&!e.target.closest('.wx-message-menu,.wx-bubble'))openedMessageMenu.hidden=true;
@@ -136,6 +177,13 @@ $('#root').addEventListener('click',async e=>{
   const action=target.dataset.action;
   try{
     if(action.startsWith('tasks-')){tasks.action(action,target.dataset.id);return;}
+    if(action==='power-open'||action==='power-charge'){expandIsland();return;}
+    if(action==='power-decline'){collapseIsland();return;}
+    if(action==='power-plug'){store.update(s=>{plugIn(s);});collapseIsland(320);return;}
+    if(action==='power-unplug'){let ok=false;store.update(s=>{ok=unplug(s);});if(ok)collapseIsland(320);return;}
+    if(action==='power-sleep'){collapseIsland();lockscreen.reset();store.update(s=>{setSleeping(s);});return;}
+    if(action==='power-shutdown'){collapseIsland();store.update(s=>{s.poweredOff=true;s.unlocked=false;});return;}
+    if(action==='power-dismiss-alarm'||action==='power-snooze'){stopAlarmSound();collapseIsland();store.update(s=>{dismissAlarm(s,{continueSleep:action==='power-snooze'});});return;}
     if(action==='home'&&shade){setShade({progress:0});return;}
     if(!store.get().unlocked){
       if(action==='close-shade'){setShade({progress:0});return;}
@@ -155,6 +203,7 @@ $('#root').addEventListener('click',async e=>{
     if(action==='notification'){const n=store.get().notifications.find(x=>x.id===target.dataset.id);if(!n)return;setShade({progress:0});router.open(n.link);return;}
     const app=registry.get(store.get().nav.current.appId);
     if(app?.handle)await app.handle(action,target,ctx(),store.get().nav.current);
+    if(['mc-accept-bounty','mc-complete-bounty'].includes(action))store.update(s=>{advanceGameMinutes(s,action==='mc-complete-bounty'?60:30);});
   }catch(err){toast(err.message||'操作未完成');}
 });
 // WeChat message actions also open on a real long press (as well as tap/right-click).
@@ -177,7 +226,7 @@ $('#root').addEventListener('contextmenu',e=>{
   if(!bubble)return;
   e.preventDefault();cancelMessageHold();registry.get('wechat')?.openMessageMenu?.(bubble);
 });
-$('#root').addEventListener('submit',e=>{if(!store.get().unlocked){e.preventDefault();return;}const app=registry.get(store.get().nav.current.appId);if(!app?.submit)return;e.preventDefault();try{app.submit(e.target,ctx(),store.get().nav.current);}catch(err){toast(err.message);}});
+$('#root').addEventListener('submit',e=>{if(!store.get().unlocked){e.preventDefault();return;}const app=registry.get(store.get().nav.current.appId);if(!app?.submit)return;e.preventDefault();try{const channel=e.target.dataset.channel,conversationId=e.target.dataset.id,hasText=String(new FormData(e.target).get('text')||'').trim().length>0;app.submit(e.target,ctx(),store.get().nav.current);if(e.target.dataset.form==='send-chat'&&channel&&conversationId&&hasText)presets.onOutgoing(channel,conversationId);}catch(err){toast(err.message);}});
 $('#root').addEventListener('input',e=>{if(!store.get().unlocked)return;if(e.target.matches('.composer input[name="text"]')){try{quietEditorUpdate=true;store.update(s=>{s.drafts[e.target.form.dataset.id]=e.target.value;});}finally{quietEditorUpdate=false;}return;}const app=registry.get(store.get().nav.current.appId);if(!app?.input)return;try{quietEditorUpdate=true;app.input(e.target,ctx());}catch(err){toast(err.message);}finally{quietEditorUpdate=false;}});
 $('#root').addEventListener('focusin',e=>{
   if(store.get().unlocked&&store.get().nav.current.appId==='wechat')registry.get('wechat')?.dismissEmojiForKeyboard?.(e.target);
