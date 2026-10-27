@@ -1,3 +1,5 @@
+import {ghostEditor,saveGhostConfig} from '../apps/ghost/editor.js';
+import {ensureGhost} from '../apps/ghost/state.js';
 import {uid} from '../services/id.js';
 import {datePreset,messageDate,messageClock,setMessageDate} from '../services/messaging/timestamps.js';
 import {dateParts,dateLabel,setPreviewDate} from '../services/calendar.js';
@@ -6,7 +8,7 @@ import {btn,card,demo,empty,esc} from '../system/ui.js';
 import {conversations as allConversations,selectedConversation,actors,actorName,renameConversation,renameActor,setSchedule,newMessage,reorderMessage,moveMessageTo,clearDelivery,scheduleLabel,createConversation,chatApps,isGroup} from './conversations/model.js';
 import {presetEditor,handlePresetAction,changePresetField,isPresetTextField,presetTestSubmit,stagePresetFile} from './presets/index.js';
 export const manifest={id:'editor',name:'内容编辑器',glyph:'✎',tone:'#65798c',hidden:true,defaultRoute:'/',kicker:'DEVELOPER / LOCAL DRAFT'};
-const tabs=[['conversations','对话'],['presets','剧情预设'],['sms','短信编辑'],['phone','电话编辑'],['assets','图片'],['preview','预览']];
+const tabs=[['ghost','GHOST'],['conversations','对话'],['presets','剧情预设'],['sms','短信编辑'],['phone','电话编辑'],['assets','图片'],['preview','预览']];
 const attr=v=>esc(v);
 function nav(route){return `<div class="editor-tabs">${tabs.map(([id,name])=>btn('editor-tab',name,route===id?'active':'',`data-tab="${id}"`)).join('')}</div>`;}
 function messageCard(m,c,s,index){
@@ -32,9 +34,11 @@ function phoneEditor(s){
  <p class="editor-help">开发者修改仅保存在当前浏览器。如需迁移至其他设备，请使用“预览”页的导出功能。</p></div>`;
 }
 function preview(s){const d=dateParts(s);return `<div class="editor-panel">${card(`<span class="eyebrow">DATE PREVIEW</span><h2>${dateLabel(s)}</h2><p>手机显示正常日期。剧情进度只在这里调整，用于 App 开放与消息触发；预览日期不作为电影官方时间线。</p>`)}<form data-form="preview"><label>手机显示日期</label><input name="date" type="date" value="${d.iso}" aria-label="手机显示日期" required><label>游戏时间</label><input name="clock" type="time" value="${s.clock}" required><label>内部剧情进度（1–90，仅开发者可见）</label><input name="day" type="number" min="1" max="90" value="${s.day}" required><button class="button-primary wide" type="submit">应用预览</button></form>${btn('export-content','导出全部本机内容','button-quiet wide')}</div>`;}
-export function render({store},loc){const s=store.get(),route=loc.route.slice(1)||'conversations';return `<div class="page-pad editor-page"><span class="eyebrow">LOCAL DRAFT ${demo()}</span><div class="large-title">内容编辑器</div>${nav(route)}${route==='presets'?presetEditor(s):route==='assets'?assets(s):route==='preview'?preview(s):route==='sms'?sms(s):route==='phone'?phoneEditor(s):conversations(s)}</div>`;}
+export function render({store},loc){const s=store.get(),route=loc.route.slice(1)||'conversations';return `<div class="page-pad editor-page"><span class="eyebrow">LOCAL DRAFT ${demo()}</span><div class="large-title">内容编辑器</div>${nav(route)}${route==='ghost'?ghostEditor(s):route==='presets'?presetEditor(s):route==='assets'?assets(s):route==='preview'?preview(s):route==='sms'?sms(s):route==='phone'?phoneEditor(s):conversations(s)}</div>`;}
 export function handle(a,t,ctx){
  const {store,router}=ctx,id=t.dataset.id;
+ if(a==='editor-ghost-save'){saveGhostConfig(t,ctx);return;}
+ if(a==='editor-ghost-mission'){const type=document.getElementById('gh-mission-type').value;store.update(s=>{const g=ensureGhost(s);g.missionTypes??={};g.missionTypes['mirage-recruit-hacker']=type;});return;}
  if(a==='editor-tab'){if(t.dataset.tab==='sms')store.update(s=>{s.editor.channel='messages';s.editor.conversation=s.content.conversations.messages?.[0]?.id||'';});router.open({appId:'editor',route:'/'+t.dataset.tab});return;}
  if(a.startsWith('preset-')&&handlePresetAction(a,t,ctx))return;
  if(a==='delete-phone-contact'){store.update(s=>{s.content.phone.contacts=s.content.phone.contacts.filter(p=>p.id!==id);});ctx.toast('联系人已删除');return;}

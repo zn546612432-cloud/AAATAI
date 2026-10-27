@@ -1,3 +1,4 @@
+import {authorize,submit} from '../ghost/state.js';
 import {HACKER_BOUNTY_ID,HACKER_MAIL_ID,phishingThemes,advanceHackerMission} from '../mirage/mission.js';
 import {kiraInbox} from './features/inbox/index.js';
 import {kiraDetail} from './features/detail/index.js';
@@ -27,5 +28,6 @@ export function handle(a,t,c){
   c.toast('邮件已发送 · 下一步：GHOST');
   c.router.open({appId:'kira',route:'/mail/'+HACKER_MAIL_ID});
  }
- if(a==='kira-mission-ghost')c.router.open({appId:'ghost',route:'/contract',params:{orderId:HACKER_BOUNTY_ID}});
+ if(a==='kira-mission-ghost'){const mail=c.store.get().content.mail.find(m=>m.id===HACKER_MAIL_ID);const order=c.store.get().content.orders.find(o=>o.id===HACKER_BOUNTY_ID);if(!mail||mail.missionStep<3||!order||order.status==='OPEN')return;c.store.update(s=>authorize(s,{orderId:HACKER_BOUNTY_ID,mailId:HACKER_MAIL_ID,type:s.ghost?.missionTypes?.[HACKER_BOUNTY_ID]||'cipher'}));c.router.open({appId:'ghost',route:'/contract',params:{orderId:HACKER_BOUNTY_ID}});}
+ if(a==='kira-ghost-submit')c.store.update(s=>submit(s,HACKER_BOUNTY_ID));
 }
