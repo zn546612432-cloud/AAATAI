@@ -21,9 +21,11 @@ export function handle(a,t,c){
   if(!selected?.correct){c.toast('主题与目标不符，请重新选择');return;}
   c.store.update(s=>{const mail=s.content.mail.find(m=>m.id===HACKER_MAIL_ID);if(mail)mail.selectedTheme=selected.id;});
  }
+ if(a==='kira-forge-preview')return c.router.open({appId:'browser',route:'/forge-preview',params:{orderId:HACKER_BOUNTY_ID}});
  if(a==='kira-mission-send'){
   const mail=c.store.get().content.mail.find(m=>m.id===HACKER_MAIL_ID);
   if(!phishingThemes.find(x=>x.id===mail?.selectedTheme)?.correct)return;
+  c.store.update(s=>{const m=s.content.mail.find(x=>x.id===HACKER_MAIL_ID);if(m)m.simulationLink='https://board.example.invalid/meeting';});
   advanceHackerMission(c.store,3);
   c.toast('邮件已发送 · 下一步：GHOST');
   c.router.open({appId:'kira',route:'/mail/'+HACKER_MAIL_ID});
