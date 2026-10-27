@@ -189,7 +189,7 @@ $('#root').addEventListener('click',async e=>{
       if(action==='close-shade'){setShade({progress:0});return;}
       if(action==='unlock'||action==='home'){if(lockscreen.stage==='cover')requestUnlock();return;}
       if(action==='passcode-key'){enterDigit(target.dataset.key);return;}
-      if(action==='notification'){const n=store.get().notifications.find(x=>x.id===target.dataset.id);requestUnlock(n?.link||null);return;}
+      if(action==='notification'){const n=store.get().notifications.find(x=>x.id===target.dataset.id);if(n)store.update(s=>{s.notifications=s.notifications.filter(x=>x.id!==n.id);});requestUnlock(n?.link||null);return;}
       return;
     }
     if(action==='home'){if(tasks.visible)tasks.hide();else if(store.get().nav.current.appId==='home')tasks.show(store.get().nav.current);else router.home();return;}
@@ -200,7 +200,7 @@ $('#root').addEventListener('click',async e=>{
     if(action==='lock'){lockscreen.reset();shade=false;store.update(s=>{s.unlocked=false;s.nav.current={appId:'home',route:'/',params:{}};s.nav.stack=[];});return;}
     if(action==='notify'||action==='island'){setShade({progress:shade?0:1});return;}
     if(action==='close-shade'){setShade({progress:0});return;}
-    if(action==='notification'){const n=store.get().notifications.find(x=>x.id===target.dataset.id);if(!n)return;setShade({progress:0});router.open(n.link);return;}
+    if(action==='notification'){const n=store.get().notifications.find(x=>x.id===target.dataset.id);if(!n)return;store.update(s=>{s.notifications=s.notifications.filter(x=>x.id!==n.id);});setShade({progress:0});if(n.link)router.open(n.link);return;}
     const app=registry.get(store.get().nav.current.appId);
     if(app?.handle)await app.handle(action,target,ctx(),store.get().nav.current);
     if(['mc-accept-bounty','mc-complete-bounty'].includes(action))store.update(s=>{advanceGameMinutes(s,action==='mc-complete-bounty'?60:30);});
