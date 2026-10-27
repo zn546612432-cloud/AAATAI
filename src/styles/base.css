@@ -240,6 +240,9 @@ textarea{min-height:90px;resize:vertical;line-height:1.55}
 .editor-tabs{display:flex;gap:7px;overflow:auto;margin-bottom:16px}
 .editor-tabs button{font-size:12px;color:#7c91a0;background:#e7eef2;padding:9px 13px;border-radius:12px}
 .editor-tabs button.active{background:#264e68;color:#fff}
+.editor-tabs{scrollbar-width:none;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}
+.editor-tabs::-webkit-scrollbar{display:none}
+.editor-tabs button{flex:0 0 auto;white-space:nowrap;min-width:66px;text-align:center}
 .editor-panel label{display:block;margin:14px 0 8px;font-size:11px;color:#7b909f}
 .editor-panel select{margin-bottom:12px}
 .edit-message{background:#fff;border:1px solid #e0e8ee;border-radius:16px;padding:13px;margin:9px 0}
@@ -434,3 +437,58 @@ to{opacity:1;transform:none}
 .editor-phone .phone-checkbox input{width:18px;height:18px;flex:none;accent-color:#4e89da}
 .editor-phone .phone-checkbox input:focus-visible{outline-offset:0}
 .sms-bank-shortcut{padding-top:0}
+.preset-page{--preset-ink:#20384b;--preset-blue:#315e79;color:var(--preset-ink)}
+.preset-intro{padding:17px 16px;background:linear-gradient(128deg,#f3f8fc,#dceaf3);border:1px solid #d5e5ef;border-radius:20px;margin-bottom:15px}
+.preset-intro strong{font-size:17px;letter-spacing:-.4px}
+.preset-intro p{color:#668399;font-size:12px;line-height:1.7;margin:7px 0 0}
+.preset-day-control{display:flex;gap:10px;align-items:end;background:#fff;border:1px solid #e3eaf0;padding:10px;border-radius:17px}
+.preset-day-control button{height:45px;min-width:36px;border-radius:12px;background:#edf4f8;font-size:26px;color:#315e79}
+.preset-day-control label{flex:1;margin:0;text-align:center;font-size:11px}
+.preset-day-control input{margin-top:4px;text-align:center;font-weight:750;font-size:18px!important}
+.preset-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0}
+.preset-summary span{display:flex;flex-direction:column;text-align:center;gap:4px;border-radius:14px;background:#f0f4f7;padding:10px 6px;color:#7b92a3;font-size:10px}
+.preset-summary b{font-size:22px;color:#294d62}
+.preset-add{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:11px 0 17px}
+.preset-primary,.preset-secondary,.preset-danger{border-radius:12px;padding:12px 10px;font-size:12px;font-weight:700;min-height:43px}
+.preset-primary{background:#305f7d;color:#fff}
+.preset-secondary{background:#e4edf4;color:#305f7d}
+.preset-danger{background:#fff0f0;color:#d15257}
+.preset-rule-list{display:grid;gap:9px;margin-bottom:13px}
+.preset-rule{position:relative;display:flex;flex-direction:column;text-align:left;align-items:flex-start;width:100%;padding:13px 30px 14px 14px;background:#fff;border:1px solid #e2e9ee;border-radius:16px;gap:5px;color:#294559}
+.preset-rule.is-selected{border-color:#73a0bd;box-shadow:0 0 0 2px #aacbdc4a;background:#faffff}
+.preset-rule-tag{font-size:9px;font-weight:750;padding:4px 7px;border-radius:7px;background:#f1edf9;color:#7c5fb4}
+.preset-rule-tag.proactive{background:#dff2ed;color:#348572}
+.preset-rule strong{font-size:13px;line-height:1.35}
+.preset-rule small{font-size:10px;color:#8b9daa;line-height:1.5}
+.preset-rule-chevron{position:absolute;right:13px;top:38%;font-size:23px;color:#7a9aab}
+.preset-editor-card{border:1px solid #dce7ee;background:#fff;border-radius:20px;padding:16px 14px;margin:12px 0 18px;box-shadow:0 7px 24px #1c47650b}
+.preset-section-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;padding-bottom:8px;border-bottom:1px solid #e9eef2}
+.preset-section-heading strong{font-size:16px}
+.preset-section-heading span{font-size:9px;color:#a0afba;overflow-wrap:anywhere;text-align:right;max-width:55%}
+.preset-editor-card label{margin:12px 0 7px}
+.preset-editor-card input,.preset-editor-card select,.preset-editor-card textarea,.preset-test input,.preset-test select,.preset-test textarea{width:100%;max-width:100%;box-sizing:border-box;margin:6px 0 0;border:1px solid #dce6ed;background:#f7fafc;border-radius:10px;padding:10px;color:#28475e;font-size:12px}
+.preset-editor-card textarea,.preset-test textarea{resize:vertical;min-height:85px;line-height:1.6}
+.preset-two-col{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:10px}
+.preset-editor-card label small,.preset-test label small{font-size:10px;font-weight:400;color:#91a5b2}
+.preset-advanced{margin-top:17px;border-top:1px solid #e9eef2;padding-top:12px}
+.preset-advanced summary,.preset-test summary{font-weight:700;font-size:12px;color:#496f86;cursor:pointer;list-style:revert}
+.preset-editor-actions{display:grid;grid-template-columns:1fr 84px;gap:8px;margin-top:17px}
+.preset-test{background:#eef4f8;border:1px solid #dae6ef;border-radius:18px;padding:15px 14px;margin:18px 0}
+.preset-test form{margin-top:12px}
+.preset-test label{margin:10px 0 6px}
+.preset-test .preset-test-check{display:flex;gap:6px;align-items:center;font-size:11px}
+.preset-test-check input{width:auto;flex:none;margin:0}
+.preset-result{margin-top:14px;padding:13px;background:#fff;border-radius:12px;border-left:3px solid #4f86a8}
+.preset-result strong{font-size:13px}.preset-result p{font-size:13px;line-height:1.7;white-space:normal}.preset-result small{font-size:10px;color:#8298a5}
+.preset-empty{padding:18px 8px;text-align:center;color:#94a8b5;font-size:12px}
+.preset-transfer{margin:16px 0 20px;padding:16px 14px;border:1px solid #d8e4ed;border-radius:19px;background:linear-gradient(140deg,#f9fcff,#edf4f8)}
+.preset-transfer .editor-help{margin:11px 0;color:#637e90;font-size:11px;line-height:1.75}
+.preset-transfer-buttons{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:12px}
+.preset-transfer-buttons button{min-width:0;white-space:normal;line-height:1.35}
+.preset-transfer-buttons button:last-child:nth-child(odd){grid-column:1/-1}
+.preset-import-preview{background:#fff;border:1px solid #bfd3df;border-radius:14px;margin-top:14px;padding:13px}
+.preset-import-preview .preset-section-heading strong{font-size:12px;overflow-wrap:anywhere;min-width:0}
+.preset-import-preview p{font-size:11px;line-height:1.65;color:#36586d;margin:9px 0}
+.preset-import-preview details{font-size:11px;color:#517187}
+.preset-import-preview ul{max-height:140px;overflow:auto;padding-left:20px;overflow-wrap:anywhere}
+@media (max-width:380px){.preset-two-col{column-gap:7px}.preset-editor-card{padding:13px 11px}.preset-add{gap:5px}.preset-primary,.preset-secondary{font-size:11px}}

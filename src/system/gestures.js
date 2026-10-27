@@ -2,6 +2,7 @@ import {releaseVelocity} from './pager.js';
 
 const DEAD_ZONE=9;
 const BLOCKED='input,textarea,select,[data-drag-message],.composer,.passcode-panel,#task-layer';
+export const isNativeScrollTarget = target => !!target?.closest?.('[data-native-scroll]');
 export function classifyGesture({dx,dy,home,locked,shade,top,bottom}){
  if(Math.max(Math.abs(dx),Math.abs(dy))<DEAD_ZONE)return null;
  if(shade&&Math.abs(dy)>Math.abs(dx))return 'shade';
@@ -18,7 +19,7 @@ export function classifyGesture({dx,dy,home,locked,shade,top,bottom}){
 export function mountGestures(root,{state,page,shade,unlock,goHome=()=>{},switcher=()=>{}}){
  let drag=null,suppressClickUntil=0;
  const start=(x,y,id,source,target,time)=>{
-  if(drag||target?.closest?.(BLOCKED))return;
+  if(drag||target?.closest?.(BLOCKED)||isNativeScrollTarget(target))return;
   const s=state(),rect=root.getBoundingClientRect();
   drag={x,y,id,source,mode:null,...s,top:y-rect.top<115,bottom:rect.bottom-y<65,samples:[{x,t:time}]};
  };
