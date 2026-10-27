@@ -6,6 +6,7 @@ import {LockScreen} from './system/lock.js';
 import {toggleReminder} from './services/reminders.js';
 import {processDemoReply} from './services/invitations.js';
 import {MessageDelivery,isConversationOpen} from './services/messaging/delivery.js';
+import {readNotification} from './services/messaging/read.js';
 import {mountInteractions} from './editor/index.js';
 import {patchHTML} from './system/dom.js';
 import {mountGestures} from './system/gestures.js';
@@ -25,7 +26,7 @@ const store=new PhoneStore();
 try{await hydrateBuiltInPresets(store);}catch(error){console.error('内置剧情加载失败',error);}
 const router=new PhoneRouter(store,registry),lockscreen=new LockScreen();
 mountShell();
-let shade=false,toastTimer,assetHandler=null,entryAnimation=false,lastNavigation=null,lastLocation=null,quietEditorUpdate=false,draggingHome=false,pagerBase=null,unlockingCover=false,swipeHomeReturn=null,islandExpanded=false,islandTimer=null,alarmSound=null;
+let shade=false,toastTimer,assetHandler=null,entryAnimation=false,lastNavigation=null,lastLocation=null,quietEditorUpdate=false,draggingHome=false,pagerBase=null,unlockingCover=false,swipeHomeReturn=null,islandExpanded=false,islandTimer=null,alarmSound=null,pendingNoticeId=null;
 const delivery=new MessageDelivery(store);
 const presets=new PresetConversationEngine(store);
 const tasks=createTaskSwitcher({router,registry});
@@ -113,7 +114,7 @@ function requestUnlock(link=null){
 function enterDigit(key){
   const result=lockscreen.key(key);
   if(result==='ignored')return;
-  if(result==='cancelled'){render();return;}
+  if(result==='cancelled'){pendingNoticeId=null;render();return;}
   // Preserve the keypad node so typing does not replay its entrance animation.
   const dots=$('.passcode-dots');
   if(dots){dots.setAttribute('aria-label',`已输入 ${lockscreen.digits.length} 位密码`);dots.querySelectorAll('i').forEach((dot,i)=>dot.classList.toggle('filled',i<lockscreen.digits.length));}
@@ -127,9 +128,10 @@ function enterDigit(key){
   if(result==='unlocking'){
     $('.lock-screen')?.classList.add('lock-unlocking');
     setTimeout(()=>{
-      const link=lockscreen.pendingLink;lockscreen.reset();setShade({progress:0});entryAnimation=true;
+      const link=lockscreen.pendingLink,noticeId=pendingNoticeId;pendingNoticeId=null;lockscreen.reset();setShade({progress:0});entryAnimation=true;
       store.update(s=>{s.unlocked=true;});
       if(link)router.open(link);
+      if(noticeId)readNotification(store,noticeId);
     },260);
   }
 }
@@ -187,9 +189,9 @@ $('#root').addEventListener('click',async e=>{
     if(action==='home'&&shade){setShade({progress:0});return;}
     if(!store.get().unlocked){
       if(action==='close-shade'){setShade({progress:0});return;}
-      if(action==='unlock'||action==='home'){if(lockscreen.stage==='cover')requestUnlock();return;}
+      if(action==='unlock'||action==='home'){if(lockscreen.stage==='cover'){pendingNoticeId=null;requestUnlock();}return;}
       if(action==='passcode-key'){enterDigit(target.dataset.key);return;}
-      if(action==='notification'){const n=store.get().notifications.find(x=>x.id===target.dataset.id);if(n)store.update(s=>{s.notifications=s.notifications.filter(x=>x.id!==n.id);});requestUnlock(n?.link||null);return;}
+      if(action==='notification'){const n=store.get().notifications.find(x=>x.id===target.dataset.id);if(!n)return;pendingNoticeId=n.id;requestUnlock(n.link||null);return;}
       return;
     }
     if(action==='home'){if(tasks.visible)tasks.hide();else if(store.get().nav.current.appId==='home')tasks.show(store.get().nav.current);else router.home();return;}
@@ -200,7 +202,7 @@ $('#root').addEventListener('click',async e=>{
     if(action==='lock'){lockscreen.reset();shade=false;store.update(s=>{s.unlocked=false;s.nav.current={appId:'home',route:'/',params:{}};s.nav.stack=[];});return;}
     if(action==='notify'||action==='island'){setShade({progress:shade?0:1});return;}
     if(action==='close-shade'){setShade({progress:0});return;}
-    if(action==='notification'){const n=store.get().notifications.find(x=>x.id===target.dataset.id);if(!n)return;store.update(s=>{s.notifications=s.notifications.filter(x=>x.id!==n.id);});setShade({progress:0});if(n.link)router.open(n.link);return;}
+    if(action==='notification'){const n=store.get().notifications.find(x=>x.id===target.dataset.id);if(!n)return;setShade({progress:0});readNotification(store,n.id);if(n.link)router.open(n.link);return;}
     const app=registry.get(store.get().nav.current.appId);
     if(app?.handle)await app.handle(action,target,ctx(),store.get().nav.current);
     if(['mc-accept-bounty','mc-complete-bounty'].includes(action))store.update(s=>{advanceGameMinutes(s,action==='mc-complete-bounty'?60:30);});

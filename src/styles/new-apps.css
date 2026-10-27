@@ -45,3 +45,12 @@
 .task-card-viewport .app-view{padding-top:0!important}
 .clock-tabs img{width:24px;height:24px;filter:brightness(0) invert(.62)}.clock-tabs .active img{filter:invert(65%) sepia(96%) saturate(2168%) hue-rotate(348deg)}
 .reminders-search img{width:20px;height:20px;opacity:.6}.reminders-summary b{display:flex;align-items:center;gap:6px}.reminders-summary img{width:22px;height:22px}
+/* Lock and notification-center cards use their originating app artwork and dark legible type. */
+.lock-notification,.shade-notification{background:rgba(249,251,254,.9);color:#141820;border:1px solid rgba(255,255,255,.78);padding:12px 13px;gap:11px;text-shadow:none;box-shadow:0 8px 22px #07172a25}
+.shade-notification{background:rgba(248,250,254,.93)}
+.notification-app-icon{flex:0 0 39px;width:39px;height:39px;display:block!important}
+.notification-app-icon .app-tile{width:39px;height:39px;border-radius:11px;box-shadow:none}
+.notification-app-icon .app-tile img{display:block}
+.notification-copy{flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:3px}
+.lock-notification .notification-copy small,.shade-notification .notification-copy small{font-size:12px;font-weight:660;line-height:1.35;color:#141820}
+.lock-notification .notification-copy strong,.shade-notification .notification-copy strong{font-size:13px;font-weight:420;line-height:1.45;color:#222b36;white-space:normal;overflow-wrap:anywhere}

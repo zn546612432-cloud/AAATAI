@@ -27,7 +27,10 @@ export class MessageDelivery {
    // original delivery time in the chat history even if it was observed later.
    const at=m.schedule?.mode==='game-time'?{day:m.schedule.day,clock:m.schedule.clock}:{day:next.day,clock:next.clock};
    m.delivery=at;
-   if(item.from!=='me'&&!isConversationOpen(next,item.channel,c.id))next.notifications.unshift({id:`message-${item.channel}-${c.id}-${m.id}`,messageId:m.id,conversationId:c.id,title:item.title,body:item.body,link:{appId:item.channel,route:'/chat/'+c.id,params:{}},demo:!!m.demo});
+   if(item.from!=='me'&&!isConversationOpen(next,item.channel,c.id)){
+    c.unread=Math.max(0,Number(c.unread)||0)+1;
+    next.notifications.unshift({id:`message-${item.channel}-${c.id}-${m.id}`,messageId:m.id,conversationId:c.id,title:item.title,body:item.body,link:{appId:item.channel,route:'/chat/'+c.id,params:{}},demo:!!m.demo});
+   }
    next.events.push({type:'authored_message_delivered',channel:item.channel,conversationId:c.id,messageId:m.id,day:at.day,clock:at.clock});
   }});
   return due;

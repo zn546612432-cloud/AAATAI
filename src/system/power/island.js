@@ -8,7 +8,7 @@ export function dynamicIsland(s,{expanded=false}={}){
   '<button data-action="power-sleep" class="battery-island-option">睡觉</button><button data-action="power-unplug" class="battery-island-option">拔线</button>':
   '<button data-action="power-plug" class="battery-island-option is-primary">充电</button><button data-action="power-decline" class="battery-island-option">拒绝</button>';
  return `<div class="dynamic-island battery-island ${expanded?'is-expanded':''} ${charging?'is-charging':''} ${low&&!charging?'is-low':''}" role="group" aria-label="灵动岛">
-  <button data-action="power-open" class="battery-island-compact" aria-label="查看电池"><span class="island-camera"></span>${charging?'<span class="battery-island-charging-dot"></span>':''}</button>
+  <span class="battery-island-compact" aria-hidden="true"><span class="island-camera"></span>${charging?'<span class="battery-island-charging-dot"></span>':''}</span>
   <div class="battery-island-detail" ${expanded?'':'inert aria-hidden="true"'}>
    <div class="battery-island-heading"><div class="battery-island-words"><strong>${title}</strong>${subtitle?`<small>${subtitle}</small>`:''}</div><span class="battery-island-icon" aria-hidden="true"><i style="width:${Math.max(5,percent)}%"></i></span></div>
    <div class="battery-island-actions">${actions}</div>

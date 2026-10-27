@@ -1,7 +1,6 @@
 import {btn,esc} from '../../system/ui.js';
 export const manifest={id:'weather',name:'天气',glyph:'☀',tone:'#5a87a5',defaultRoute:'/',kicker:'MACAU'};
 export const weatherCities=[
- {id:'zhongshan',name:'中山市',subtitle:'我的位置 · ⌂家',temp:26,high:32,low:24,condition:'大部晴朗无云',theme:'night'},
  {id:'macau',name:'澳门特别行政区',subtitle:'00:30',temp:26,high:29,low:25,condition:'晴朗无云',theme:'night'},
  {id:'london',name:'伦敦',subtitle:'16:30',temp:16,high:17,low:9,condition:'多云',theme:'cloud'},
  {id:'paris',name:'巴黎',subtitle:'17:30',temp:14,high:15,low:8,condition:'多云',theme:'cloud'}

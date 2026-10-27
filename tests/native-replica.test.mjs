@@ -50,7 +50,8 @@ test('weather card removal survives reload and can be restored without deleting 
  const {store,storage}=setup();
  assert.equal(registry.get('weather'),weather);
  const before=weather.visibleWeatherCities(store.get());
- assert.equal(before.length,4);
+ assert.equal(before.length,3);
+ assert.ok(!before.some(city=>city.id==='zhongshan'));
  const id='paris';
  store.update(s=>{s.content.weather={56:{paris:{name:'巴黎',temp:12,condition:'小雨',high:14,low:8}}};});
  assert.match(weather.render({store},{route:'/',params:{}}),/weather-swipe-row/);
