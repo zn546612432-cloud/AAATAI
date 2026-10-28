@@ -60,12 +60,28 @@ test('plugging above 20% advances fast and gradually restores battery without wi
  assert.equal(s.powerMode,'idle');
 });
 
-test('D90 never jumps to a nonexistent D91 when charging',()=>{
+test('charging crosses midnight after the authored 90-day story',()=>{
  const s=initialState();s.day=90;s.clock='23:55';s.batteryPercent=20;
  assert.equal(plugIn(s),true);
  tickWorld(s,3000);
- assert.equal(s.day,90);
- assert.equal(s.clock,'23:59');
+ assert.equal(s.day,91);
+ assert.equal(s.clock,'00:55');
+ assert.ok(s.batteryPercent>20);
+});
+
+test('a saved D90 23:59 emergency screen can charge and resume beyond midnight',()=>{
+ const storage=new Map(),adapter={getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v)};
+ const saved=initialState();saved.day=90;saved.clock='23:59';saved.batteryPercent=1;saved.emergencyCharge=true;
+ storage.set(KEY,JSON.stringify(saved));
+ const store=new PhoneStore(adapter);
+ assert.match(powerFullscreen(store.get()),/power-emergency-screen/);
+ store.update(s=>{assert.equal(plugIn(s),true);});
+ assert.equal(powerFullscreen(store.get()),'');
+ store.update(s=>tickWorld(s,3000));
+ assert.equal(store.get().day,91);
+ assert.equal(store.get().clock,'00:59');
+ assert.ok(store.get().batteryPercent>1);
+ assert.equal(new PhoneStore(adapter).get().day,91);
 });
 
 test('existing saved battery percentage survives PhoneStore reload',()=>{

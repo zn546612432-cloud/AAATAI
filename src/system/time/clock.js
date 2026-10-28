@@ -9,9 +9,9 @@ export const clockMinutes=clock=>Number(clock.slice(0,2))*60+Number(clock.slice(
 export const absoluteMinute=s=>(s.day-1)*DAY_MINUTES+clockMinutes(s.clock);
 const isoTime=n=>`${String(Math.floor(n/60)).padStart(2,'0')}:${String(n%60).padStart(2,'0')}`;
 export function setAbsoluteMinute(s,minute){
- const clamped=Math.max(0,Math.min(90*DAY_MINUTES-1,Math.floor(minute)));
- s.day=Math.floor(clamped/DAY_MINUTES)+1;
- s.clock=isoTime(clamped%DAY_MINUTES);
+ const elapsed=Math.max(0,Math.floor(minute));
+ s.day=Math.floor(elapsed/DAY_MINUTES)+1;
+ s.clock=isoTime(elapsed%DAY_MINUTES);
 }
 export function nextClockOccurrence(from,clock){
  const within=clockMinutes(clock),day=Math.floor(from/DAY_MINUTES);
@@ -25,13 +25,13 @@ function nextAlarm(s,from,end){
   if(!alarm.enabled||!/^([01]\d|2[0-3]):[0-5]\d$/.test(alarm.time))continue;
   if(alarm.repeat==='永不'&&alarm.lastFiredDay!==undefined)continue;
   const at=nextClockOccurrence(from,alarm.time),day=Math.floor(at/DAY_MINUTES)+1;
-  if(day>90||at>end||alarm.lastFiredDay===day)continue;
+  if(at>end||alarm.lastFiredDay===day)continue;
   if(!found||at<found.at)found={at,alarm};
  }
  return found;
 }
 export function advanceGameMinutes(s,requested){
- const from=absoluteMinute(s),target=Math.min(90*DAY_MINUTES-1,from+Math.max(0,Math.floor(requested)));
+ const from=absoluteMinute(s),target=from+Math.max(0,Math.floor(requested));
  if(target<=from)return {minutes:0};
  let stop={at:target,type:'none'};
  const alarm=nextAlarm(s,from,target);

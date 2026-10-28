@@ -88,3 +88,15 @@ test('fast-forward delivers each pre-scheduled chat message with its original ti
  const messages=store.get().content.conversations.wechat[0].messages;
  assert.deepEqual(messages.map(m=>m.delivery),[{day:56,clock:'23:30'},{day:57,clock:'01:00'}]);
 });
+
+test('ordinary clock and repeating alarm continue beyond day 90',()=>{
+ const s=initialState();s.day=90;s.clock='23:59';s.batteryPercent=100;
+ assert.equal(advanceGameMinutes(s,2).minutes,2);
+ assert.equal(s.day,91);
+ assert.equal(s.clock,'00:01');
+ s.content.alarms=[{id:'later',time:'01:00',enabled:true,repeat:'每天'}];
+ plugIn(s);
+ assert.equal(advanceGameMinutes(s,120).event,'alarm');
+ assert.equal(s.day,91);
+ assert.equal(s.clock,'01:00');
+});
