@@ -13,7 +13,7 @@ export function drainBattery(s,ms){
  if(s.batteryPercent===1)s.emergencyCharge=true;
  return before-s.batteryPercent;
 }
-export const canCharge=s=>!!s&&s.day<=90&&s.powerMode!=='charging'&&s.powerMode!=='sleeping';
+export const canCharge=s=>!!s&&s.day<90&&s.powerMode!=='charging'&&s.powerMode!=='sleeping';
 export function plugIn(s){
  if(!canCharge(s))return false;
  s.powerMode='charging';s.emergencyCharge=false;s.poweredOff=false;s.powerActiveMs=0;s.worldMinuteFraction=0;
