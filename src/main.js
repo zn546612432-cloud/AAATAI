@@ -19,6 +19,7 @@ import {mountWeatherSwipe} from './apps/weather/replica.js';
 import {createTaskSwitcher} from './system/task-switcher.js';
 import {drainBattery,plugIn,unplug} from './system/power/battery.js';
 import {advanceGameMinutes,tickWorld,setSleeping,dismissAlarm} from './system/time/clock.js';
+import {chargingBlock,deathLocked,phoneBlocked,recoverPhone} from './system/power/story.js';
 import {powerFullscreen} from './system/power/controls.js';
 import {PresetConversationEngine} from './story/presets/engine.js';
 import {hydrateBuiltInPresets} from './story/presets/catalog.js';
@@ -38,7 +39,7 @@ const toast=message=>{const node=$('#toast');if(!node)return;node.textContent=St
 const ctx=()=>({store,router,toast,refresh:render,pickImage(handler){assetHandler=handler;const input=$('#asset-picker');input.value='';input.click();},download(){const blob=new Blob([JSON.stringify(store.get(),null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='ximeng-phone-backup.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);}});
 function setShade({progress,settle=true}){
  const layer=$('#shade-layer');layer.classList.toggle('is-present',progress>0);layer.classList.toggle('is-dragging',!settle);layer.style.setProperty('--shade-progress',String(progress));layer.setAttribute('aria-hidden',String(progress===0));layer.inert=progress===0;
- $('#screen-layer').inert=progress>0;$('#phone').classList.toggle('notification-open',progress>0);
+ $('#screen-layer').inert=progress>0||phoneBlocked(store.get())||!!powerFullscreen(store.get());$('#phone').classList.toggle('notification-open',progress>0);
  if(settle)shade=progress===1;
 }
 function animateNavigation(previous,direction=1){
@@ -62,7 +63,8 @@ function animateNavigation(previous,direction=1){
  current?.animate([{opacity:0,transform:`translateY(${direction*14}px) scale(.985)`},{opacity:1,transform:'translateY(0) scale(1)'}],{duration:270,easing:'cubic-bezier(.2,.75,.25,1)'});
 }
 function render(){
- if(draggingHome)return;
+ if(draggingHome&&!phoneBlocked(store.get()))return;
+ if(phoneBlocked(store.get()))draggingHome=false;
  const s=store.get(),current=s.nav.current,navigation=s.unlocked?JSON.stringify(current):'lock';
  const changed=lastNavigation!==null&&navigation!==lastNavigation,nativeTabSwitch=changed&&isNativeTabSwitch(lastLocation,current),screen=$('#screen-layer'),previous=changed&&!nativeTabSwitch?screen.firstElementChild?.cloneNode(true):null;
  if(previous){const nodes=screen.firstElementChild.querySelectorAll('.app-content,.chat-messages');previous.querySelectorAll('.app-content,.chat-messages').forEach((node,i)=>node.dataset.restoreScroll=String(nodes[i].scrollTop));}
@@ -73,13 +75,19 @@ function render(){
  $('#phone').classList.toggle('app-light-active',s.unlocked&&current.appId!=='home'&&!['mirage','ghost','noapp','weather'].includes(current.appId));
  const wallpaper=`url("${s.wallpaper}")`;if($('#wallpaper').style.backgroundImage!==wallpaper)$('#wallpaper').style.backgroundImage=wallpaper;
  patchHTML($('#status-layer'),status(s,{islandExpanded}));patchHTML($('#shade-layer'),notifications(s));
- const fullscreen=powerFullscreen(s),overlay=$('#day-transition-layer');
+ if(s.deathPhase==='passcode'&&lockscreen.stage==='cover')lockscreen.open();
+ const fullscreen=powerFullscreen(s,{passcode:s.deathPhase==='passcode'?lock(s,lockscreen.stage,lockscreen.digits):''}),overlay=$('#day-transition-layer');
  patchHTML(overlay,fullscreen);overlay.classList.toggle('is-visible',!!fullscreen);overlay.setAttribute('aria-hidden',String(!fullscreen));
  let body;
- if(!s.unlocked)body=lock(s,lockscreen.stage,lockscreen.digits);
+ if(['off','passcode'].includes(s.deathPhase))body='';
+ else if(!s.unlocked)body=lock(s,lockscreen.stage,lockscreen.digits);
  else if(current.appId==='home')body=home(s);
  else{const app=registry.get(current.appId);if(current.appId==='mirage'&&lastLocation?.appId!=='mirage')app?.onEnter?.();body=app?appFrame(s,app,app.render(ctx(),current)):'<div class="empty">App 不可用</div>';}
  patchHTML(screen,body);
+ const blocked=phoneBlocked(s)||!!fullscreen;
+ $('#phone').classList.toggle('death-draining',s.deathPhase==='draining');
+ for(const id of ['screen-layer','status-layer','shade-layer','task-layer','homebar'])$('#'+id).inert=blocked;
+ if(blocked){document.activeElement?.closest('#screen-layer')&&document.activeElement.blur();$('#shade-layer').classList.remove('is-present');$('#task-layer').style.visibility='hidden';}else $('#task-layer').style.visibility='';
  if(s.unlocked&&current.appId!=='home')tasks.snapshot(current);
  if(navigation===lastNavigation&&actorsOpen&&$('.editor-actors'))$('.editor-actors').open=true;
  if(changed&&s.unlocked&&!nativeTabSwitch)animateNavigation(previous);
@@ -92,7 +100,7 @@ function render(){
  lastLocation={...current};
 }
 function requestUnlock(link=null){
- if(lockscreen.stage!=='cover'||unlockingCover)return;
+ if(phoneBlocked(store.get())||lockscreen.stage!=='cover'||unlockingCover)return;
  setShade({progress:0});
  const cover=$('.lock-screen');
  const reduced=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -113,22 +121,28 @@ function requestUnlock(link=null){
  });
 }
 function enterDigit(key){
-  const result=lockscreen.key(key);
+  const recovery=store.get().deathPhase==='passcode';
+  if(phoneBlocked(store.get())&&!recovery)return;
+  if(recovery&&key==='cancel'){lockscreen.reset();store.update(s=>{s.deathPhase='off';});return;}
+  const result=lockscreen.key(key,recovery||store.get().deathPhase==='recovered'?'6180':'0816');
   if(result==='ignored')return;
   if(result==='cancelled'){pendingNoticeId=null;render();return;}
   // Preserve the keypad node so typing does not replay its entrance animation.
-  const dots=$('.passcode-dots');
+  const digitsRoot=recovery?$('#day-transition-layer'):$('#screen-layer');
+  const dots=digitsRoot.querySelector('.passcode-dots');
   if(dots){dots.setAttribute('aria-label',`已输入 ${lockscreen.digits.length} 位密码`);dots.querySelectorAll('i').forEach((dot,i)=>dot.classList.toggle('filled',i<lockscreen.digits.length));}
   if(result==='error'){
     // iOS behaviour: no dialog or toast. The four dots shake sideways, the phone pulses,
     // then the dots empty and the keypad accepts a new attempt.
-    $('.lock-screen')?.classList.add('lock-error');
+    digitsRoot.querySelector('.lock-screen')?.classList.add('lock-error');
     errorHaptic();
     setTimeout(()=>{lockscreen.retry();render();},520);
   }
   if(result==='unlocking'){
-    $('.lock-screen')?.classList.add('lock-unlocking');
+    digitsRoot.querySelector('.lock-screen')?.classList.add('lock-unlocking');
     setTimeout(()=>{
+      if(recovery){const code=lockscreen.digits;lockscreen.reset();store.update(s=>recoverPhone(s,code));expandIsland();return;}
+      if(phoneBlocked(store.get()))return;
       const link=lockscreen.pendingLink,noticeId=pendingNoticeId;pendingNoticeId=null;lockscreen.reset();setShade({progress:0});entryAnimation=true;
       store.update(s=>{s.unlocked=true;});
       if(link)router.open(link);
@@ -152,24 +166,32 @@ function collapseIsland(delay=0){
  islandExpanded=false;render();
 }
 function expandIsland(){
- if(store.get().emergencyCharge||store.get().poweredOff)return;
+ if(phoneBlocked(store.get())||store.get().emergencyCharge||store.get().poweredOff)return;
  islandExpanded=true;render();collapseIsland(8000);
 }
 store.subscribe(()=>{if(!quietEditorUpdate)render();});render();
+for(const type of ['click','dblclick','pointerdown','pointermove','pointerup','touchstart','touchmove','touchend','keydown','input','change','submit','contextmenu'])document.addEventListener(type,e=>{
+ const s=store.get();if(!phoneBlocked(s))return;
+ const recovery=s.deathPhase==='passcode',off=s.deathPhase==='off';
+ if(recovery&&(e.target.closest?.('#day-transition-layer')||type==='keydown'))return;
+ if(off&&(e.target.closest?.('[data-action="story-wake"]')||type==='keydown'&&['Enter',' '].includes(e.key)))return;
+ if(e.cancelable)e.preventDefault();e.stopImmediatePropagation();
+},{capture:true,passive:false});
 mountInteractions($('#root'),ctx());
 mountWeatherSwipe($('#root'),ctx);
-setInterval(()=>{try{presets.tick();if(needsWorldTick(store.get()))store.update(s=>advanceGhost(s));const delivered=delivery.tick(Date.now(),!document.hidden);if(delivered.length&&store.get().unlocked){const incoming=delivered.find(m=>m.from!=='me'&&!isConversationOpen(store.get(),m.channel,m.conversationId));if(incoming)toast(`${incoming.title}：${incoming.body}`);}}catch(err){toast(err.message||'消息未能保存');}},500);
+setInterval(()=>{if(deathLocked(store.get()))return;try{presets.tick();if(needsWorldTick(store.get()))store.update(s=>advanceGhost(s));const delivered=delivery.tick(Date.now(),!document.hidden);if(delivered.length&&store.get().unlocked){const incoming=delivered.find(m=>m.from!=='me'&&!isConversationOpen(store.get(),m.channel,m.conversationId));if(incoming)toast(`${incoming.title}：${incoming.body}`);}}catch(err){toast(err.message||'消息未能保存');}},500);
 // The page runs in foreground only; a backgrounded tab never skips story events.
 let lastPowerTick=performance.now();
 setInterval(()=>{
  const now=performance.now(),elapsed=Math.max(0,Math.min(2500,now-lastPowerTick));
  lastPowerTick=now;
- if(document.hidden||store.get().alarmRinging||store.get().emergencyCharge||store.get().poweredOff||store.get().nav.current.appId==='editor')return;
+ if(document.hidden||['off','passcode'].includes(store.get().deathPhase)||store.get().alarmRinging||store.get().emergencyCharge||store.get().poweredOff||store.get().nav.current.appId==='editor'&&!deathLocked(store.get()))return;
  const editing=document.activeElement?.matches?.('.composer input[name="text"],.composer textarea,[contenteditable="true"]')||false;
  let outcome={};
  store.update(s=>{outcome=tickWorld(s,elapsed,{focused:editing});drainBattery(s,elapsed);});
  if(outcome.event==='alarm'){collapseIsland();startAlarmSound();}
  if(outcome.event==='emergency')collapseIsland();
+ if(outcome.event==='death-start'||outcome.event==='death-off'){lockscreen.reset();cancelMessageHold();setShade({progress:0});collapseIsland();}
  if(outcome.event==='wake'){collapseIsland();lockscreen.reset();}
 },800);
 $('#root').addEventListener('click',async e=>{
@@ -179,10 +201,11 @@ $('#root').addEventListener('click',async e=>{
   const target=e.target.closest('[data-action]');if(!target)return;
   const action=target.dataset.action;
   try{
+    if(action==='story-wake'&&store.get().deathPhase==='off'){lockscreen.open();store.update(s=>{s.deathPhase='passcode';});return;}
     if(action.startsWith('tasks-')){tasks.action(action,target.dataset.id);return;}
     if(action==='power-open'||action==='power-charge'){expandIsland();return;}
     if(action==='power-decline'){collapseIsland();return;}
-    if(action==='power-plug'){store.update(s=>{plugIn(s);});collapseIsland(320);return;}
+    if(action==='power-plug'){if(chargingBlock(store.get())){toast('充电口进水，稍后再试。');collapseIsland();return;}let charged=false;store.update(s=>{charged=plugIn(s);});if(charged){lockscreen.reset();setShade({progress:0});}collapseIsland();return;}
     if(action==='power-unplug'){let ok=false;store.update(s=>{ok=unplug(s);});if(ok)collapseIsland(320);return;}
     if(action==='power-sleep'){collapseIsland();lockscreen.reset();store.update(s=>{setSleeping(s);});return;}
     if(action==='power-shutdown'){collapseIsland();store.update(s=>{s.poweredOff=true;s.unlocked=false;});return;}
@@ -292,6 +315,7 @@ mountGestures($('#phone'),{
  unlock:()=>{if(lockscreen.stage==='cover')requestUnlock();}
 });
 document.addEventListener('keydown',e=>{
+  if(store.get().deathPhase==='off'&&['Enter',' '].includes(e.key)){e.preventDefault();lockscreen.open();store.update(s=>{s.deathPhase='passcode';});return;}
   if(!store.get().unlocked){
     if(lockscreen.stage==='cover'&&['ArrowUp','Enter',' '].includes(e.key)){e.preventDefault();requestUnlock();}
     else if(/^\d$/.test(e.key)||['Backspace','Escape'].includes(e.key)){e.preventDefault();enterDigit(e.key==='Backspace'?'erase':e.key==='Escape'?'cancel':e.key);}

@@ -64,3 +64,24 @@
 @keyframes power-sleep-shimmer{to{transform:translateX(100%)}}
 @keyframes power-alarm-pulse{50%{box-shadow:0 0 0 25px #a1c9ec12,0 0 0 54px #b4def108}}
 @media(prefers-reduced-motion:reduce){.battery-island,.battery-island-detail,#day-transition-layer{transition:none}.power-fullscreen,.battery-island-charging-dot,.power-emergency-battery i,.power-sleep-moon{animation:none}}
+
+.battery-island.is-story-low{width:min(184px,calc(100vw - 200px));height:58px;border-radius:24px;pointer-events:none}
+.battery-island.is-story-low .battery-island-detail{padding:10px 13px}
+.battery-island.is-story-low .battery-island-heading{min-height:0;gap:8px}
+.battery-island.is-story-low strong{font-size:12px}
+.battery-island.is-story-low small{font-size:10px}
+.battery-island.is-story-low .battery-island-icon{flex-basis:34px;height:22px;border-radius:6px;padding:2px}
+.battery-island.is-story-low .battery-island-icon::after{top:5px;height:8px}
+.battery-island.is-story-low .battery-island-actions{display:none}
+.power-wake{position:absolute;inset:0;width:100%;height:100%;border:0;background:#000}
+.power-recovery-screen{padding:0;background:#000}
+.power-recovery-screen .lock-screen{position:absolute;inset:0;width:100%;background:#000;padding-top:15vh}
+.power-recovery-screen .lock-cover,.power-recovery-screen .lock-space{display:none}
+.power-recovery-screen .passcode-panel{margin:auto;max-width:350px}
+.power-day-charge .power-emergency-battery{border-color:#48ca8a}
+.power-day-charge .power-emergency-battery::after{background:#48ca8a}
+.power-day-charge .power-emergency-battery i{width:100%;background:#48ca8a;box-shadow:0 0 22px #48ca8a55}
+#phone.death-draining #screen-layer{pointer-events:none}
+#phone.death-draining #homebar{visibility:hidden}
+
+#phone.death-draining .unlock-hint{visibility:hidden}

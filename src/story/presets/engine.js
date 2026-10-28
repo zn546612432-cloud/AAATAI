@@ -1,3 +1,4 @@
+import {deathLocked} from '../../system/power/story.js';
 import {dateParts} from '../../services/calendar.js';
 import {starterPresetState} from './defaults.js';
 
@@ -69,7 +70,7 @@ export class PresetConversationEngine{
   entry.timer=setTimeout(()=>{
    this.pending.delete(key);
    const state=this.store.get(),{rule}=matchReplyRule(state,entry);
-   if(!rule)return; // silence is a deliberate, valid result.
+   if(!rule||deathLocked(state))return; // silence is a deliberate, valid result.
    this.store.update(next=>{if(!used(ensurePresets(next),rule))deliverRule(next,rule);});
   },this.settleMs);
   this.pending.set(key,entry);

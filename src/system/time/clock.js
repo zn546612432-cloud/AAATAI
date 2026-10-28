@@ -1,3 +1,4 @@
+import {DEATH_START,DEATH_END,chargingBlock,deathLocked,syncDeathNight} from '../power/story.js';
 // Civil game time, story day and battery are deliberately independent.
 // 24 in-game hours = 30 real minutes; plugged-in: 1 hour per 3 seconds.
 export const NORMAL_MINUTES_PER_MS=1440/1_800_000;
@@ -31,17 +32,24 @@ function nextAlarm(s,from,end){
  return found;
 }
 export function advanceGameMinutes(s,requested){
+ syncDeathNight(s);
+ if(['off','passcode'].includes(s.deathPhase)||s.dayChargeRemainingMs>0)return {minutes:0};
  const from=absoluteMinute(s),target=from+Math.max(0,Math.floor(requested));
  if(target<=from)return {minutes:0};
+ if(s.deathPhase==='draining'){
+  const at=Math.min(target,DEATH_END);setAbsoluteMinute(s,at);syncDeathNight(s);
+  return {minutes:at-from,event:at===DEATH_END?'death-off':'none'};
+ }
  let stop={at:target,type:'none'};
  const alarm=nextAlarm(s,from,target);
  if(alarm&&alarm.at<=stop.at)stop={...alarm,type:'alarm'};
  if(s.powerMode==='sleeping'&&Number.isFinite(s.sleepWakeAt)&&s.sleepWakeAt<stop.at)stop={at:s.sleepWakeAt,type:'wake'};
  // Only an unplugged phone is driven to an emergency 1% at 03:00.
- if(s.powerMode!=='charging'&&s.powerMode!=='sleeping'){
+ if(!chargingBlock(s)&&s.powerMode!=='charging'&&s.powerMode!=='sleeping'){
   const at=nextClockOccurrence(from,'03:00');
   if(at<=stop.at)stop={at,type:'emergency'};
  }
+ if(s.deathPhase!=='recovered'&&from<DEATH_START&&target>=DEATH_START&&DEATH_START<=stop.at)stop={at:DEATH_START,type:'death-start'};
  const advanced=stop.at-from;
  setAbsoluteMinute(s,stop.at);
  if(s.powerMode==='charging'||s.powerMode==='sleeping'){
@@ -55,19 +63,22 @@ export function advanceGameMinutes(s,requested){
   if(a){a.lastFiredDay=s.day;if(a.repeat==='永不')a.enabled=false;}
   s.alarmRinging={id:stop.alarm.id,label:stop.alarm.label||'闹钟',clock:s.clock,day:s.day,fromSleep:s.powerMode==='sleeping'};
   s.notifications.unshift({id:`alarm-${stop.alarm.id}-${s.day}`,title:'闹钟',body:s.alarmRinging.label,link:{appId:'clock',route:'/',params:{}}});
-  if(s.powerMode==='idle'&&s.clock==='03:00'){s.batteryPercent=1;s.emergencyCharge=true;}
+  if(!chargingBlock(s)&&s.powerMode==='idle'&&s.clock==='03:00'){s.batteryPercent=1;s.emergencyCharge=true;}
  }else if(stop.type==='wake'){
   s.powerMode='idle';s.sleepWakeAt=null;s.unlocked=false;
   s.nav.stack=[];s.nav.current={appId:'home',route:'/',params:{}};
  }else if(stop.type==='emergency'){
   s.batteryPercent=1;s.powerActiveMs=0;s.emergencyCharge=true;
  }
+ syncDeathNight(s);
  return {minutes:advanced,event:stop.type};
 }
 export function tickWorld(s,realMilliseconds,{focused=false}={}){
- if(s.alarmRinging||s.emergencyCharge)return {minutes:0};
+ syncDeathNight(s);
+ if(s.dayChargeRemainingMs>0){s.dayChargeRemainingMs=Math.max(0,s.dayChargeRemainingMs-realMilliseconds);return {minutes:0};}
+ if(['off','passcode'].includes(s.deathPhase)||s.alarmRinging||s.emergencyCharge)return {minutes:0};
  const mode=s.powerMode||'idle';
- const rate=focused?TYPING_MINUTES_PER_MS:mode==='charging'?CHARGING_MINUTES_PER_MS:mode==='sleeping'?SLEEPING_MINUTES_PER_MS:NORMAL_MINUTES_PER_MS;
+ const rate=s.deathPhase==='draining'?NORMAL_MINUTES_PER_MS:focused?TYPING_MINUTES_PER_MS:mode==='charging'?CHARGING_MINUTES_PER_MS:mode==='sleeping'?SLEEPING_MINUTES_PER_MS:NORMAL_MINUTES_PER_MS;
  const total=(Number(s.worldMinuteFraction)||0)+Math.max(0,realMilliseconds)*rate;
  const whole=Math.floor(total);
  if(!whole){s.worldMinuteFraction=total;return {minutes:0};}
@@ -76,7 +87,7 @@ export function tickWorld(s,realMilliseconds,{focused=false}={}){
  return outcome;
 }
 export function setSleeping(s){
- if(s.powerMode!=='charging'||s.alarmRinging)return false;
+ if(deathLocked(s)||s.day===90||s.powerMode!=='charging'||s.alarmRinging)return false;
  s.powerMode='sleeping';s.sleepWakeAt=wakeMinute(s);s.worldMinuteFraction=0;
  s.unlocked=false;s.nav.stack=[];s.nav.current={appId:'home',route:'/',params:{}};
  return true;

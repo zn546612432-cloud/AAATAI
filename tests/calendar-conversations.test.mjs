@@ -19,8 +19,8 @@ test('old saves acquire a date anchor without losing messages, and public shell 
  const {store,storage,data}=setup(),old=structuredClone(store.get());delete old.calendar;old.content.notes[0].text='保留旧笔记';data.set(KEY,JSON.stringify(old));
  const restored=new PhoneStore(storage);assert.ok(restored.get().calendar);assert.equal(restored.get().content.notes[0].text,'保留旧笔记');
  restored.update(s=>setPreviewDate(s,{day:56,date:'2026-10-26',clock:'21:18'}));const state=restored.get();
- assert.match(lock(state),/2026年10月26日 星期一/);assert.match(home(state),/2026年10月26日/);assert.ok(!/第\s*56\s*天|D56/.test(lock(state)+home(state)));
- restored.update(s=>{s.day=57;});assert.equal(dateLabel(new PhoneStore(storage).get()),'2026年10月27日');
+ assert.match(lock(state),/2025年7月13日 星期日/);assert.match(home(state),/2025年7月13日/);assert.ok(!/第\s*56\s*天|D56/.test(lock(state)+home(state)));
+ restored.update(s=>{s.day=57;});assert.equal(dateLabel(new PhoneStore(storage).get()),'2025年7月14日');
 });
 test('new direct windows in all four chat apps persist and messages target only the selected window',()=>{
  const {store,storage}=setup();

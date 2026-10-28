@@ -33,7 +33,8 @@ function phoneEditor(s){
  ${data.calls.map(call=>`<details class="phone-editor-item"><summary><strong>${esc(call.name||call.number)}</strong><small>${esc(call.place)} · ${esc(call.day)} ${call.missed?' · 未接来电':''}　›</small></summary><form data-form="phone-edit-call"><input type="hidden" name="id" value="${attr(call.id)}">${textInput('number',call.number,'电话号码',true)}${textInput('name',call.name,'显示名称（可选）')}${textInput('place',call.place,'地区',true)}${textInput('day',call.day,'通话日期／显示时间',true)}<label class="phone-checkbox"><input type="checkbox" name="missed" ${call.missed?'checked':''}> 未接来电</label><div class="phone-editor-actions"><button class="button-primary" type="submit">保存通话记录</button>${btn('delete-phone-call','删除','text-button danger',`type="button" data-id="${attr(call.id)}"`)}</div></form></details>`).join('')}
  <p class="editor-help">开发者修改仅保存在当前浏览器。如需迁移至其他设备，请使用“预览”页的导出功能。</p></div>`;
 }
-function preview(s){const d=dateParts(s);return `<div class="editor-panel">${card(`<span class="eyebrow">DATE PREVIEW</span><h2>${dateLabel(s)}</h2><p>手机显示正常日期。剧情进度只在这里调整，用于 App 开放与消息触发；预览日期不作为电影官方时间线。</p>`)}<form data-form="preview"><label>手机显示日期</label><input name="date" type="date" value="${d.iso}" aria-label="手机显示日期" required><label>游戏时间</label><input name="clock" type="time" value="${s.clock}" required><label>内部日期（剧情内容为第 1–90 天）</label><input name="day" type="number" min="1" value="${s.day}" required><button class="button-primary wide" type="submit">应用预览</button></form>${btn('export-content','导出全部本机内容','button-quiet wide')}</div>`;}
+function preview(s){const d=dateParts(s);return `<div class="editor-panel">${card(`<span class="eyebrow">TIMELINE</span><h2>${dateLabel(s)}</h2><p>D1 · 2025.05.19 — D90 · 2025.08.16</p>`)}<form data-form="preview"><label>手机显示日期</label><input type="date" value="${d.iso}" aria-label="手机显示日期" readonly><label>游戏时间</label><input name="clock" type="time" value="${s.clock}" required><label>剧情天数</label><input name="day" type="number" min="1" value="${s.day}" required><button class="button-primary wide" type="submit">应用预览</button></form><div class="section-heading">重大剧情 · 暂停充电</div><form data-form="charge-gate"><label>剧情天数</label><input name="day" type="number" min="1" max="89" value="${Math.min(89,s.day)}" required><label>完成标记</label><input name="flag" placeholder="day-57-complete" required><button class="button-primary wide" type="submit">保存</button></form><p class="editor-help">剧情规则写入完成标记后，即可充电跳日。第 90 天固定禁止充电。</p>${(s.storyChargeGates||[]).map(g=>`<div class="card">D${g.day} · ${esc(g.untilFlag)} ${btn('remove-charge-gate','删除','text-button',`data-day="${g.day}"`)}</div>`).join('')}${btn('export-content','导出全部本机内容','button-quiet wide')}</div>`;}
+
 export function render({store},loc){const s=store.get(),route=loc.route.slice(1)||'conversations';return `<div class="page-pad editor-page"><span class="eyebrow">LOCAL DRAFT ${demo()}</span><div class="large-title">内容编辑器</div>${nav(route)}${route==='ghost'?ghostEditor(s):route==='presets'?presetEditor(s):route==='assets'?assets(s):route==='preview'?preview(s):route==='sms'?sms(s):route==='phone'?phoneEditor(s):conversations(s)}</div>`;}
 export function handle(a,t,ctx){
  const {store,router}=ctx,id=t.dataset.id;
@@ -44,6 +45,7 @@ export function handle(a,t,ctx){
  if(a.startsWith('preset-')&&handlePresetAction(a,t,ctx))return;
  if(a==='delete-phone-contact'){store.update(s=>{s.content.phone.contacts=s.content.phone.contacts.filter(p=>p.id!==id);});ctx.toast('联系人已删除');return;}
  if(a==='delete-phone-call'){store.update(s=>{s.content.phone.calls=s.content.phone.calls.filter(call=>call.id!==id);});ctx.toast('通话记录已删除');return;}
+ if(a==='remove-charge-gate'){store.update(s=>{s.storyChargeGates=(s.storyChargeGates||[]).filter(g=>g.day!==Number(t.dataset.day));});return;}
  if(a==='preview-chat'){const x=selectedConversation(store.get());if(x)router.open({appId:x.channel,route:'/chat/'+x.c.id});return;}
  if(a==='add-message')store.update(s=>{const {c}=selectedConversation(s);c.messages.push(newMessage(s,c));});
  if(a==='duplicate-message')store.update(s=>{const {c}=selectedConversation(s),i=c.messages.findIndex(m=>m.id===id);if(i<0)return;const m=structuredClone(c.messages[i]);m.id=uid();delete m.delivery;delete m.actual;m.authored=true;c.messages.splice(i+1,0,m);});
@@ -113,7 +115,8 @@ export function submit(f,ctx){const {store,toast}=ctx,data=new FormData(f),form=
   }
  }
  if(form==='new-conversation'||form==='new-sms'){createConversation(store,{channel:form==='new-sms'?'messages':String(data.get('channel')),name:String(data.get('name')||''),type:form==='new-sms'?'direct':String(data.get('type')),members:String(data.get('members')||'')});const pane=document.querySelector('#app-content');if(pane)pane.scrollTop=0;toast('对话窗口已创建，可以添加消息');}
- if(form==='preview'){store.update(s=>setPreviewDate(s,{day:Number(data.get('day')),clock:String(data.get('clock')),date:String(data.get('date'))}));toast('预览日期已更新');}
+ if(form==='charge-gate'){const day=Number(data.get('day')),untilFlag=String(data.get('flag')||'').trim();if(!Number.isInteger(day)||day<1||day>89||!untilFlag)throw Error('请填写天数与完成标记');store.update(s=>{s.storyChargeGates=[...(s.storyChargeGates||[]).filter(g=>g.day!==day),{day,untilFlag}];});toast('已保存');return;}
+ if(form==='preview'){store.update(s=>setPreviewDate(s,{day:Number(data.get('day')),clock:String(data.get('clock'))}));toast('预览日期已更新');}
 }
 export function mountInteractions(root,ctx){
  let drag=null;

@@ -26,8 +26,8 @@ test('battery drains independently of the clock and low power animates in the is
  assert.match(status(s,{islandExpanded:true}),/拒绝/);
  assert.match(status(s),/battery-island/);
  assert.doesNotMatch(status(s),/is-expanded/);
- plugIn(s);assert.match(status(s,{islandExpanded:true}),/Charging/);
- assert.match(status(s),/is-charging/);
+ plugIn(s);assert.match(powerFullscreen(s),/power-day-charge/);
+ assert.equal(s.batteryPercent,100);
 });
 
 test('1% enters an emergency black screen until charging; shutdown remains recoverable',()=>{
@@ -44,44 +44,13 @@ test('1% enters an emergency black screen until charging; shutdown remains recov
  assert.equal(s.emergencyCharge,false);
 });
 
-test('plugging above 20% advances fast and gradually restores battery without wiping content',()=>{
+test('direct charging preserves content, advances the calendar and cannot double skip',()=>{
  const s=initialState(),priorDate=dateParts(s).iso,priorContent=s.content;
- assert.equal(canCharge(s),true);
- assert.equal(plugIn(s),true);
- assert.equal(tickWorld(s,3000).minutes,60);
- assert.equal(s.clock,'22:18');
- assert.ok(s.batteryPercent>82);
- advanceGameMinutes(s,120);
- assert.equal(s.day,57);
- assert.notEqual(dateParts(s).iso,priorDate);
- assert.equal(s.clock,'00:18');
- assert.strictEqual(s.content,priorContent);
- assert.equal(unplug(s),true);
- assert.equal(s.powerMode,'idle');
-});
-
-test('charging crosses midnight after the authored 90-day story',()=>{
- const s=initialState();s.day=90;s.clock='23:55';s.batteryPercent=20;
- assert.equal(plugIn(s),true);
- tickWorld(s,3000);
- assert.equal(s.day,91);
- assert.equal(s.clock,'00:55');
- assert.ok(s.batteryPercent>20);
-});
-
-test('a saved D90 23:59 emergency screen can charge and resume beyond midnight',()=>{
- const storage=new Map(),adapter={getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v)};
- const saved=initialState();saved.day=90;saved.clock='23:59';saved.batteryPercent=1;saved.emergencyCharge=true;
- storage.set(KEY,JSON.stringify(saved));
- const store=new PhoneStore(adapter);
- assert.match(powerFullscreen(store.get()),/power-emergency-screen/);
- store.update(s=>{assert.equal(plugIn(s),true);});
- assert.equal(powerFullscreen(store.get()),'');
- store.update(s=>tickWorld(s,3000));
- assert.equal(store.get().day,91);
- assert.equal(store.get().clock,'00:59');
- assert.ok(store.get().batteryPercent>1);
- assert.equal(new PhoneStore(adapter).get().day,91);
+ assert.equal(canCharge(s),true);assert.equal(plugIn(s),true);
+ assert.equal(s.day,57);assert.equal(s.clock,'08:00');assert.equal(s.batteryPercent,100);
+ assert.notEqual(dateParts(s).iso,priorDate);assert.strictEqual(s.content,priorContent);
+ assert.equal(plugIn(s),false);assert.equal(unplug(s),false);
+ tickWorld(s,1200);assert.equal(powerFullscreen(s),'');
 });
 
 test('existing saved battery percentage survives PhoneStore reload',()=>{

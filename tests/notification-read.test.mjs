@@ -62,3 +62,13 @@ test('new delivered incoming chat message increases unread once and is cleared w
  assert.equal(store.get().content.conversations.wechat.find(c=>c.id==='wang').unread,0);
  assert.equal(store.get().notifications.filter(n=>n.conversationId==='wang').length,0);
 });
+
+test('KIRA list and deep links persist read state per mail without clearing other blue dots',async()=>{
+ const {kiraInbox}=await import('../src/apps/kira/features/inbox/index.js');
+ const {store,storage}=setup(),mail=store.get().content.mail[0];
+ const count=()=> (kiraInbox(store.get()).match(/●/g)||[]).length;
+ const before=count(),priorDoc=globalThis.document;globalThis.document={querySelector:()=>null};
+ try{const router=new PhoneRouter(store,registry);router.open({appId:'kira',route:'/mail/'+mail.id});router.back();}finally{globalThis.document=priorDoc;}
+ assert.equal(store.get().content.mail[0].read,true);assert.equal(count(),before-1);
+ assert.equal(new PhoneStore(storage).get().content.mail[0].read,true);
+});
