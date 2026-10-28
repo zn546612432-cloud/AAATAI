@@ -54,3 +54,4 @@
 .notification-copy{flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:3px}
 .lock-notification .notification-copy small,.shade-notification .notification-copy small{font-size:12px;font-weight:660;line-height:1.35;color:#141820}
 .lock-notification .notification-copy strong,.shade-notification .notification-copy strong{font-size:13px;font-weight:420;line-height:1.45;color:#222b36;white-space:normal;overflow-wrap:anywhere}
+.bank-actions{display:flex;gap:10px;margin:15px 0}.bank-actions button{flex:1}.bank-entry{display:flex;justify-content:space-between;padding:15px 0;border-bottom:1px solid #ddd;font-size:14px}.bank-entry small{display:block;color:#8a8d96;margin-top:5px}.bank-form label{display:block;margin:20px 0;font-size:13px}.bank-form input{display:block;width:100%;margin-top:8px;padding:14px;border:1px solid #ddd;border-radius:10px;background:white;font-size:16px}
