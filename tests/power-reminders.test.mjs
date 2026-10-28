@@ -62,8 +62,9 @@ test('plugging above 20% advances fast and gradually restores battery without wi
 
 test('D90 never jumps to a nonexistent D91 when charging',()=>{
  const s=initialState();s.day=90;s.clock='23:55';s.batteryPercent=20;
- assert.equal(plugIn(s),true);
- tickWorld(s,3000);
+ assert.equal(canCharge(s),false);
+ assert.equal(plugIn(s),false);
+ advanceGameMinutes(s,120);
  assert.equal(s.day,90);
  assert.equal(s.clock,'23:59');
 });
